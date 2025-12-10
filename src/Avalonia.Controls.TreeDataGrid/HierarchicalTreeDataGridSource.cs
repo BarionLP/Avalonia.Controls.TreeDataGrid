@@ -32,7 +32,7 @@ public class HierarchicalTreeDataGridSource<TModel> : NotifyingBase,
     private bool _isSelectionSet;
 
     public HierarchicalTreeDataGridSource(TModel item)
-        : this(new[] { item })
+        : this([item])
     {
     }
 
@@ -40,7 +40,7 @@ public class HierarchicalTreeDataGridSource<TModel> : NotifyingBase,
     {
         _items = items;
         _itemsView = TreeDataGridItemsSourceView<TModel>.GetOrCreate(items);
-        Columns = new ColumnList<TModel>();
+        Columns = [];
         Columns.CollectionChanged += OnColumnsCollectionChanged;
     }
 
@@ -229,23 +229,33 @@ public class HierarchicalTreeDataGridSource<TModel> : NotifyingBase,
             IEnumerable<TModel>? children;
 
             if (path.Count == 0)
+            {
                 children = _items;
+            }
             else if (TryGetModelAt(path, out var parent))
+            {
                 children = GetModelChildren(parent);
+            }
             else
+            {
                 throw new IndexOutOfRangeException();
+            }
 
-            if (children is null)
-                throw new InvalidOperationException("The requested drop target has no children.");
-
-            return children as IList<TModel> ??
+            return children is null
+                ? throw new InvalidOperationException("The requested drop target has no children.")
+                : children as IList<TModel> ??
                 throw new InvalidOperationException("Items does not implement IList<T>.");
         }
 
-        if (effects != DragDropEffects.Move)
+        if (effects is not DragDropEffects.Move)
+        {
             throw new NotSupportedException("Only move is currently supported for drag/drop.");
+        }
+
         if (IsSorted)
+        {
             throw new NotSupportedException("Drag/drop is not supported on sorted data.");
+        }
 
         IList<TModel> targetItems;
         int ti;
@@ -262,7 +272,9 @@ public class HierarchicalTreeDataGridSource<TModel> : NotifyingBase,
         }
 
         if (position == TreeDataGridRowDropPosition.After)
+        {
             ++ti;
+        }
 
         var sourceItems = new List<TModel>();
 
@@ -275,8 +287,10 @@ public class HierarchicalTreeDataGridSource<TModel> : NotifyingBase,
                 sourceItems.Add(items[i]);
 
                 if (items == targetItems && i < ti)
+                {
                     --ti;
-                
+                }
+
                 items.RemoveAt(i);
             }
         }
