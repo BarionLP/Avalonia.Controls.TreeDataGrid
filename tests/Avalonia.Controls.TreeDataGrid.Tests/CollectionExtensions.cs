@@ -1,13 +1,12 @@
 ﻿using Avalonia.Collections;
 using Avalonia.Diagnostics;
 
-namespace Avalonia.Controls.TreeDataGridTests
+namespace Avalonia.Controls.TreeDataGridTests;
+
+internal static class CollectionExtensions
 {
-    internal static class CollectionExtensions
+    public static int CollectionChangedSubscriberCount<T>(this AvaloniaListDebug<T> list)
     {
-        public static int CollectionChangedSubscriberCount<T>(this AvaloniaListDebug<T> list)
-        {
-            return list.GetCollectionChangedSubscribers()?.Length ?? 0;
-        }
+        return list.GetCollectionChangedSubscribers()?.Length ?? 0;
     }
 }

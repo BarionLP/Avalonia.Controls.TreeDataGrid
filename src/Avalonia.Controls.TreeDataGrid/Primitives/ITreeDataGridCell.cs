@@ -1,19 +1,18 @@
 ﻿using Avalonia.Controls.Models.TreeDataGrid;
 using Avalonia.Controls.Selection;
 
-namespace Avalonia.Controls.Primitives
+namespace Avalonia.Controls.Primitives;
+
+internal interface ITreeDataGridCell
 {
-    internal interface ITreeDataGridCell
-    {
-        int ColumnIndex { get; }
+    int ColumnIndex { get; }
 
-        void Realize(
-            TreeDataGridElementFactory factory,
-            ITreeDataGridSelectionInteraction? selection,
-            ICell model,
-            int columnIndex,
-            int rowIndex);
+    void Realize(
+        TreeDataGridElementFactory factory,
+        ITreeDataGridSelectionInteraction? selection,
+        ICell model,
+        int columnIndex,
+        int rowIndex);
 
-        void Unrealize();
-    }
+    void Unrealize();
 }

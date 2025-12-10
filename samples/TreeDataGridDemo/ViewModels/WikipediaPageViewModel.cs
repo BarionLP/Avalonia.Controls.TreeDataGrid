@@ -9,53 +9,52 @@ using Avalonia.Controls.Models.TreeDataGrid;
 using Avalonia.Media;
 using TreeDataGridDemo.Models;
 
-namespace TreeDataGridDemo.ViewModels
+namespace TreeDataGridDemo.ViewModels;
+
+internal class WikipediaPageViewModel
 {
-    internal class WikipediaPageViewModel
+    private readonly AvaloniaList<OnThisDayArticle> _data = new();
+
+    public WikipediaPageViewModel()
     {
-        private readonly AvaloniaList<OnThisDayArticle> _data = new();
-
-        public WikipediaPageViewModel()
+        var wrap = new TextColumnOptions<OnThisDayArticle>
         {
-            var wrap = new TextColumnOptions<OnThisDayArticle>
-            {
-                TextTrimming = TextTrimming.None,
-                TextWrapping = TextWrapping.Wrap,
-            };
+            TextTrimming = TextTrimming.None,
+            TextWrapping = TextWrapping.Wrap,
+        };
 
-            Source = new FlatTreeDataGridSource<OnThisDayArticle>(_data)
-            {
-                Columns =
-                {
-                    new TemplateColumn<OnThisDayArticle>("Image", "WikipediaImageCell"),
-                    new TextColumn<OnThisDayArticle, string?>("Title", x => x.Titles!.Normalized),
-                    new TextColumn<OnThisDayArticle, string?>("Extract", x => x.Extract, GridLength.Star, wrap)
-                }
-            };
-
-            _ = LoadContent();
-        }
-
-        public FlatTreeDataGridSource<OnThisDayArticle> Source { get; }
-
-        private async Task LoadContent()
+        Source = new FlatTreeDataGridSource<OnThisDayArticle>(_data)
         {
-            try
+            Columns =
             {
-                var client = new HttpClient();
-                var d = DateTimeOffset.Now.Day;
-                var m = DateTimeOffset.Now.Month;
-                var uri = $"https://api.wikimedia.org/feed/v1/wikipedia/en/onthisday/all/{m:00}/{d:00}";
-                var s = await client.GetStringAsync(uri);
-                var data = JsonSerializer.Deserialize<OnThisDay>(s, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true,
-                });
-
-                if (data?.Selected is not null)
-                    _data.AddRange(data.Selected.SelectMany(x => x.Pages!));
+                new TemplateColumn<OnThisDayArticle>("Image", "WikipediaImageCell"),
+                new TextColumn<OnThisDayArticle, string?>("Title", x => x.Titles!.Normalized),
+                new TextColumn<OnThisDayArticle, string?>("Extract", x => x.Extract, GridLength.Star, wrap)
             }
-            catch { }
+        };
+
+        _ = LoadContent();
+    }
+
+    public FlatTreeDataGridSource<OnThisDayArticle> Source { get; }
+
+    private async Task LoadContent()
+    {
+        try
+        {
+            var client = new HttpClient();
+            var d = DateTimeOffset.Now.Day;
+            var m = DateTimeOffset.Now.Month;
+            var uri = $"https://api.wikimedia.org/feed/v1/wikipedia/en/onthisday/all/{m:00}/{d:00}";
+            var s = await client.GetStringAsync(uri);
+            var data = JsonSerializer.Deserialize<OnThisDay>(s, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+            });
+
+            if (data?.Selected is not null)
+                _data.AddRange(data.Selected.SelectMany(x => x.Pages!));
         }
+        catch { }
     }
 }

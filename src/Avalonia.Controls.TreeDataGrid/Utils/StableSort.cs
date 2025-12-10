@@ -7,21 +7,20 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
-namespace Avalonia.Controls.Utils
-{
-    internal class StableSort
-    {
-        public static List<int> SortedMap<T>(IReadOnlyList<T> elements, Comparison<int> compare)
-        {
-            var map = new List<int>(elements.Count);
-            for (var i = 0; i < elements.Count; i++)
-            {
-                map.Add(i);
-            }
+namespace Avalonia.Controls.Utils;
 
-            var span = CollectionsMarshal.AsSpan(map);
-            SortHelper<int>.Sort(span, compare);
-            return map;
+internal class StableSort
+{
+    public static List<int> SortedMap<T>(IReadOnlyList<T> elements, Comparison<int> compare)
+    {
+        var map = new List<int>(elements.Count);
+        for (var i = 0; i < elements.Count; i++)
+        {
+            map.Add(i);
         }
+
+        var span = CollectionsMarshal.AsSpan(map);
+        SortHelper<int>.Sort(span, compare);
+        return map;
     }
 }

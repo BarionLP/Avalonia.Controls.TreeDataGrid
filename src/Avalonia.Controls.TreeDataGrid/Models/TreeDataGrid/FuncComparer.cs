@@ -2,12 +2,10 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Avalonia.Controls.Models.TreeDataGrid
+namespace Avalonia.Controls.Models.TreeDataGrid;
+
+internal class FuncComparer<T>(Comparison<T?> func) : IComparer<T>
 {
-    internal class FuncComparer<T> : IComparer<T>
-    {
-        private readonly Comparison<T?> _func;
-        public FuncComparer(Comparison<T?> func) => _func = func;
-        public int Compare(T? x, T? y) => _func(x, y);
-    }
+    private readonly Comparison<T?> _func = func;
+    public int Compare(T? x, T? y) => _func(x, y);
 }

@@ -1,12 +1,11 @@
 ﻿using Avalonia.Controls.Models.TreeDataGrid;
 
-namespace Avalonia.Controls.TreeDataGridTests
+namespace Avalonia.Controls.TreeDataGridTests;
+
+internal class LayoutTestCell : TextCell<string>
 {
-    internal class LayoutTestCell : TextCell<string>
+    public LayoutTestCell(string value)
+        : base(value)
     {
-        public LayoutTestCell(string value)
-            : base(value)
-        {
-        }
     }
 }

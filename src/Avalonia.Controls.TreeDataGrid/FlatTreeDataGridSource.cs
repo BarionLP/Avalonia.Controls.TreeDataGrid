@@ -7,165 +7,157 @@ using Avalonia.Controls.Models.TreeDataGrid;
 using Avalonia.Controls.Selection;
 using Avalonia.Input;
 
-namespace Avalonia.Controls
+namespace Avalonia.Controls;
+
+/// <summary>
+/// A data source for a <see cref="TreeDataGrid"/> which displays a flat grid.
+/// </summary>
+/// <typeparam name="TModel">The model type.</typeparam>
+public class FlatTreeDataGridSource<TModel>(IEnumerable<TModel> items) : NotifyingBase,
+    ITreeDataGridSource<TModel>,
+    IDisposable
+        where TModel: class
 {
-    /// <summary>
-    /// A data source for a <see cref="TreeDataGrid"/> which displays a flat grid.
-    /// </summary>
-    /// <typeparam name="TModel">The model type.</typeparam>
-    public class FlatTreeDataGridSource<TModel> : NotifyingBase,
-        ITreeDataGridSource<TModel>,
-        IDisposable
-            where TModel: class
+    private IEnumerable<TModel> _items = items;
+    private TreeDataGridItemsSourceView<TModel> _itemsView = TreeDataGridItemsSourceView<TModel>.GetOrCreate(items);
+    private AnonymousSortableRows<TModel>? _rows;
+    private IComparer<TModel>? _comparer;
+    private ITreeDataGridSelection? _selection;
+    private bool _isSelectionSet;
+
+    public ColumnList<TModel> Columns { get; } = [];
+    public IRows Rows => _rows ??= CreateRows();
+    IColumns ITreeDataGridSource.Columns => Columns;
+
+    public IEnumerable<TModel> Items
     {
-        private IEnumerable<TModel> _items;
-        private TreeDataGridItemsSourceView<TModel> _itemsView;
-        private AnonymousSortableRows<TModel>? _rows;
-        private IComparer<TModel>? _comparer;
-        private ITreeDataGridSelection? _selection;
-        private bool _isSelectionSet;
-
-        public FlatTreeDataGridSource(IEnumerable<TModel> items)
+        get => _items;
+        set
         {
-            _items = items;
-            _itemsView = TreeDataGridItemsSourceView<TModel>.GetOrCreate(items);
-            Columns = new ColumnList<TModel>();
-        }
-
-        public ColumnList<TModel> Columns { get; }
-        public IRows Rows => _rows ??= CreateRows();
-        IColumns ITreeDataGridSource.Columns => Columns;
-
-        public IEnumerable<TModel> Items
-        {
-            get => _items;
-            set
+            if (_items != value)
             {
-                if (_items != value)
-                {
-                    _items = value;
-                    _itemsView = TreeDataGridItemsSourceView<TModel>.GetOrCreate(value);
-                    _rows?.SetItems(_itemsView);
-                    if (_selection is object)
-                        _selection.Source = value;
-                    RaisePropertyChanged();
-                }
+                _items = value;
+                _itemsView = TreeDataGridItemsSourceView<TModel>.GetOrCreate(value);
+                _rows?.SetItems(_itemsView);
+                if (_selection is object)
+                    _selection.Source = value;
+                RaisePropertyChanged();
             }
         }
+    }
 
-        public ITreeDataGridSelection? Selection
+    public ITreeDataGridSelection? Selection
+    {
+        get
         {
-            get
+            if (_selection == null && !_isSelectionSet)
+                _selection = new TreeDataGridRowSelectionModel<TModel>(this);
+            return _selection;
+        }
+        set
+        {
+            if (_selection != value)
             {
-                if (_selection == null && !_isSelectionSet)
-                    _selection = new TreeDataGridRowSelectionModel<TModel>(this);
-                return _selection;
-            }
-            set
-            {
-                if (_selection != value)
-                {
-                    if (value?.Source != _items)
-                        throw new InvalidOperationException("Selection source must be set to Items.");
-                    _selection = value;
-                    _isSelectionSet = true;
-                    RaisePropertyChanged();
-                }
+                if (value?.Source != _items)
+                    throw new InvalidOperationException("Selection source must be set to Items.");
+                _selection = value;
+                _isSelectionSet = true;
+                RaisePropertyChanged();
             }
         }
+    }
 
-        IEnumerable<object> ITreeDataGridSource.Items => Items;
+    IEnumerable<object> ITreeDataGridSource.Items => Items;
 
-        public ITreeDataGridCellSelectionModel<TModel>? CellSelection => Selection as ITreeDataGridCellSelectionModel<TModel>;
-        public ITreeDataGridRowSelectionModel<TModel>? RowSelection => Selection as ITreeDataGridRowSelectionModel<TModel>;
-        public bool IsHierarchical => false;
-        public bool IsSorted => _comparer is not null;
+    public ITreeDataGridCellSelectionModel<TModel>? CellSelection => Selection as ITreeDataGridCellSelectionModel<TModel>;
+    public ITreeDataGridRowSelectionModel<TModel>? RowSelection => Selection as ITreeDataGridRowSelectionModel<TModel>;
+    public bool IsHierarchical => false;
+    public bool IsSorted => _comparer is not null;
 
-        public event Action? Sorted;
+    public event Action? Sorted;
 
-        public void Dispose()
+    public void Dispose()
+    {
+        _rows?.Dispose();
+        GC.SuppressFinalize(this);
+    }
+
+    void ITreeDataGridSource.DragDropRows(
+        ITreeDataGridSource source,
+        IEnumerable<IndexPath> indexes,
+        IndexPath targetIndex,
+        TreeDataGridRowDropPosition position,
+        DragDropEffects effects)
+    {
+        if (effects != DragDropEffects.Move)
+            throw new NotSupportedException("Only move is currently supported for drag/drop.");
+        if (IsSorted)
+            throw new NotSupportedException("Drag/drop is not supported on sorted data.");
+        if (position == TreeDataGridRowDropPosition.Inside)
+            throw new ArgumentException("Invalid drop position.", nameof(position));
+        if (indexes.Any(x => x.Count != 1))
+            throw new ArgumentException("Invalid source index.", nameof(indexes));
+        if (targetIndex.Count != 1)
+            throw new ArgumentException("Invalid target index.", nameof(targetIndex));
+        if (_items is not IList<TModel> items)
+            throw new InvalidOperationException("Items does not implement IList<T>.");
+
+        if (position == TreeDataGridRowDropPosition.None)
+            return;
+
+        var ti = targetIndex[0];
+
+        if (position == TreeDataGridRowDropPosition.After)
+            ++ti;
+
+        var sourceItems = new List<TModel>();
+
+        foreach (var src in indexes.OrderByDescending(x => x))
         {
-            _rows?.Dispose();
-            GC.SuppressFinalize(this);
+            var i = src[0];
+            sourceItems.Add(items[i]);
+            items.RemoveAt(i);
+
+            if (i < ti)
+                --ti;
         }
 
-        void ITreeDataGridSource.DragDropRows(
-            ITreeDataGridSource source,
-            IEnumerable<IndexPath> indexes,
-            IndexPath targetIndex,
-            TreeDataGridRowDropPosition position,
-            DragDropEffects effects)
+        for (var si = sourceItems.Count - 1; si >= 0; --si)
         {
-            if (effects != DragDropEffects.Move)
-                throw new NotSupportedException("Only move is currently supported for drag/drop.");
-            if (IsSorted)
-                throw new NotSupportedException("Drag/drop is not supported on sorted data.");
-            if (position == TreeDataGridRowDropPosition.Inside)
-                throw new ArgumentException("Invalid drop position.", nameof(position));
-            if (indexes.Any(x => x.Count != 1))
-                throw new ArgumentException("Invalid source index.", nameof(indexes));
-            if (targetIndex.Count != 1)
-                throw new ArgumentException("Invalid target index.", nameof(targetIndex));
-            if (_items is not IList<TModel> items)
-                throw new InvalidOperationException("Items does not implement IList<T>.");
-
-            if (position == TreeDataGridRowDropPosition.None)
-                return;
-
-            var ti = targetIndex[0];
-
-            if (position == TreeDataGridRowDropPosition.After)
-                ++ti;
-
-            var sourceItems = new List<TModel>();
-
-            foreach (var src in indexes.OrderByDescending(x => x))
-            {
-                var i = src[0];
-                sourceItems.Add(items[i]);
-                items.RemoveAt(i);
-
-                if (i < ti)
-                    --ti;
-            }
-
-            for (var si = sourceItems.Count - 1; si >= 0; --si)
-            {
-                items.Insert(ti++, sourceItems[si]);
-            }
+            items.Insert(ti++, sourceItems[si]);
         }
+    }
 
-        bool ITreeDataGridSource.SortBy(IColumn? column, ListSortDirection direction)
+    bool ITreeDataGridSource.SortBy(IColumn? column, ListSortDirection direction)
+    {
+        if (column is IColumn<TModel> typedColumn)
         {
-            if (column is IColumn<TModel> typedColumn)
-            {
-                if (!Columns.Contains(typedColumn))
-                    return true;
-
-                var comparer = typedColumn.GetComparison(direction);
-
-                if (comparer is not null)
-                {
-                    _comparer = comparer is not null ? new FuncComparer<TModel>(comparer) : null;
-                    _rows?.Sort(_comparer);
-                    Sorted?.Invoke();
-                    foreach (var c in Columns)
-                        c.SortDirection = c == column ? direction : null;
-                }
+            if (!Columns.Contains(typedColumn))
                 return true;
+
+            var comparer = typedColumn.GetComparison(direction);
+
+            if (comparer is not null)
+            {
+                _comparer = comparer is not null ? new FuncComparer<TModel>(comparer) : null;
+                _rows?.Sort(_comparer);
+                Sorted?.Invoke();
+                foreach (var c in Columns)
+                    c.SortDirection = c == column ? direction : null;
             }
-
-            return false;
+            return true;
         }
 
-        IEnumerable<object> ITreeDataGridSource.GetModelChildren(object model)
-        {
-            return Enumerable.Empty<object>();
-        }
+        return false;
+    }
 
-        private AnonymousSortableRows<TModel> CreateRows()
-        {
-            return new AnonymousSortableRows<TModel>(_itemsView, _comparer);
-        }
+    IEnumerable<object> ITreeDataGridSource.GetModelChildren(object model)
+    {
+        return Enumerable.Empty<object>();
+    }
+
+    private AnonymousSortableRows<TModel> CreateRows()
+    {
+        return new AnonymousSortableRows<TModel>(_itemsView, _comparer);
     }
 }

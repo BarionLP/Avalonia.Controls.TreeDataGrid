@@ -4,11 +4,10 @@ using Avalonia.Markup.Xaml;
 
 [assembly: AvaloniaTestApplication(typeof(TestApplication))]
 
-namespace Avalonia.Controls.TreeDataGridTests
+namespace Avalonia.Controls.TreeDataGridTests;
+
+public class TestApplication : Application
 {
-    public class TestApplication : Application
-    {
-        public static AppBuilder BuildAvaloniaApp() => AppBuilder.Configure<TestApplication>()
-            .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = true });
-    }
+    public static AppBuilder BuildAvaloniaApp() => AppBuilder.Configure<TestApplication>()
+        .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = true });
 }

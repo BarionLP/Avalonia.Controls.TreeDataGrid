@@ -1,13 +1,12 @@
-﻿namespace Avalonia.Controls.Models.TreeDataGrid
+﻿namespace Avalonia.Controls.Models.TreeDataGrid;
+
+/// <summary>
+/// Represents a row which can be indented to represent nested data.
+/// </summary>
+public interface IIndentedRow : IRow
 {
     /// <summary>
-    /// Represents a row which can be indented to represent nested data.
+    /// Gets the row indent level.
     /// </summary>
-    public interface IIndentedRow : IRow
-    {
-        /// <summary>
-        /// Gets the row indent level.
-        /// </summary>
-        int Indent { get; }
-    }
+    int Indent { get; }
 }

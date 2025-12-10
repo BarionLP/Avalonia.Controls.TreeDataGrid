@@ -1,8 +1,7 @@
-﻿namespace Avalonia.Controls.Models.TreeDataGrid
+﻿namespace Avalonia.Controls.Models.TreeDataGrid;
+
+public interface ITextSearchableColumn<TModel>
 {
-    public interface ITextSearchableColumn<TModel>
-    {
-        public bool IsTextSearchEnabled { get; }
-        internal string? SelectValue(TModel model);
-    }
+    public bool IsTextSearchEnabled { get; }
+    internal string? SelectValue(TModel model);
 }

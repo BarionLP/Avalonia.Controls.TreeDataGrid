@@ -1,25 +1,24 @@
 ﻿using Avalonia.Controls.Primitives;
 
-namespace Avalonia.Controls.TreeDataGridTests
-{
-    internal class TestElementFactory : TreeDataGridElementFactory
-    {
-        protected override Control CreateElement(object? data)
-        {
-            return data switch
-            {
-                LayoutTestCell => new LayoutTestCellControl(),
-                _ => base.CreateElement(data),
-            };
-        }
+namespace Avalonia.Controls.TreeDataGridTests;
 
-        protected override string GetDataRecycleKey(object? data)
+internal class TestElementFactory : TreeDataGridElementFactory
+{
+    protected override Control CreateElement(object? data)
+    {
+        return data switch
         {
-            return data switch
-            {
-                LayoutTestCell _ => typeof(LayoutTestCellControl).FullName!,
-                _ => base.GetDataRecycleKey(data),
-            };
-        }
+            LayoutTestCell => new LayoutTestCellControl(),
+            _ => base.CreateElement(data),
+        };
+    }
+
+    protected override string GetDataRecycleKey(object? data)
+    {
+        return data switch
+        {
+            LayoutTestCell _ => typeof(LayoutTestCellControl).FullName!,
+            _ => base.GetDataRecycleKey(data),
+        };
     }
 }
