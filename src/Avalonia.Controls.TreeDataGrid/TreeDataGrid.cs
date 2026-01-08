@@ -202,11 +202,9 @@ public class TreeDataGrid : TemplatedControl
         {
             if (_selection != value)
             {
-                if (_selection != null)
-                    _selection.SelectionChanged -= OnSelectionInteractionChanged;
+                _selection?.SelectionChanged -= OnSelectionInteractionChanged;
                 _selection = value;
-                if (_selection != null)
-                    _selection.SelectionChanged += OnSelectionInteractionChanged;
+                _selection?.SelectionChanged += OnSelectionInteractionChanged;
             }
         }
     }
@@ -471,7 +469,7 @@ public class TreeDataGrid : TemplatedControl
         if (allowedEffects is not DragDropEffects.None)
         {
             var data = new DataObject();
-            var info = new DragInfo(_source, RowSelection.SelectedIndexes.ToList());
+            var info = new DragInfo(_source, [.. RowSelection.SelectedIndexes]);
             data.Set(DragInfo.DataFormat, info);
             await DragDrop.DoDragDrop(trigger, data, allowedEffects);
         }

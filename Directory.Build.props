@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <AvaloniaVersion>11.3.9</AvaloniaVersion>
-    <AvaloniaSamplesVersion>11.3.9</AvaloniaSamplesVersion>
+    <AvaloniaVersion>11.3.10</AvaloniaVersion>
+    <AvaloniaSamplesVersion>11.3.10</AvaloniaSamplesVersion>
   </PropertyGroup>
 </Project>

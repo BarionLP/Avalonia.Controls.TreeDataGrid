@@ -17,7 +17,7 @@
     <PackageReference Include="Avalonia.Diagnostics" Version="$(AvaloniaSamplesVersion)" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="$(AvaloniaSamplesVersion)" />
     <PackageReference Include="Avalonia.Fonts.Inter" Version="$(AvaloniaSamplesVersion)" />
-    <PackageReference Include="Avalonia.ReactiveUI" Version="$(AvaloniaSamplesVersion)" />
+    <PackageReference Include="Avalonia.ReactiveUI" Version="11.3.9" />
     <PackageReference Include="Bogus" Version="35.6.5" />
   </ItemGroup>
   <ItemGroup>
