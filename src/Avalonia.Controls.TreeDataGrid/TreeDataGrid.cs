@@ -93,7 +93,7 @@ public class TreeDataGrid : TemplatedControl
 
     public TreeDataGrid()
     {
-        AddHandler(TreeDataGridColumnHeader.ClickEvent, OnClick);
+        AddHandler(Button.ClickEvent, OnClick);
         AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
     }
 
