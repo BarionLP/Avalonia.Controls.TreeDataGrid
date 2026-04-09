@@ -18,8 +18,12 @@ public class IndentConverter : IValueConverter
         return new Thickness();
     }
 
+    /// <summary>
+    /// Unsupported
+    /// </summary>
+    /// <exception cref="InvalidOperationException"></exception>
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        throw new InvalidOperationException();
     }
 }

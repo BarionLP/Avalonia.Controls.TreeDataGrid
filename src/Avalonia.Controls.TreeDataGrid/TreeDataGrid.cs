@@ -465,15 +465,13 @@ public class TreeDataGrid : TemplatedControl
             allowedEffects = e.AllowedEffects;
         }
 
-#pragma warning disable CS0618 // Type or member is obsolete
         if (allowedEffects is not DragDropEffects.None)
         {
-            var data = new DataObject();
-            var info = new DragInfo(_source, [.. RowSelection.SelectedIndexes]);
-            data.Set(DragInfo.DataFormat, info);
-            await DragDrop.DoDragDrop(trigger, data, allowedEffects);
+            // var data = new DataObject();
+            // var info = new DragInfo(_source, [.. RowSelection.SelectedIndexes]);
+            // data.Set(DragInfo.DataFormat, info);
+            // await DragDrop.DoDragDropAsync(trigger, data, allowedEffects);
         }
-#pragma warning restore CS0618 // Type or member is obsolete
     }
 
     private void OnClick(object? sender, RoutedEventArgs e)
@@ -612,37 +610,35 @@ public class TreeDataGrid : TemplatedControl
         [NotNullWhen(true)] out DragInfo? data,
         out TreeDataGridRowDropPosition position)
     {
-#pragma warning disable CS0618 // Type or member is obsolete
-        if (!AutoDragDropRows ||
-            e.Data.Get(DragInfo.DataFormat) is not DragInfo di ||
-            _source is null ||
-            _source.IsSorted ||
-            targetRow is null ||
-            di.Source != _source)
+        // if (!AutoDragDropRows ||
+        //     e.Data.Get(DragInfo.DataFormat) is not DragInfo di ||
+        //     _source is null ||
+        //     _source.IsSorted ||
+        //     targetRow is null ||
+        //     di.Source != _source)
         {
             data = null;
             position = TreeDataGridRowDropPosition.None;
             return false;
         }
-#pragma warning restore CS0618 // Type or member is obsolete
 
-        var targetIndex = _source.Rows.RowIndexToModelIndex(targetRow.RowIndex);
-        position = GetDropPosition(_source, e, targetRow);
+        // var targetIndex = _source.Rows.RowIndexToModelIndex(targetRow.RowIndex);
+        // position = GetDropPosition(_source, e, targetRow);
 
-        // We can't drop rows into themselves or their descendents.
-        foreach (var sourceIndex in di.Indexes)
-        {
-            if (sourceIndex.IsAncestorOf(targetIndex) ||
-                (sourceIndex == targetIndex && position == TreeDataGridRowDropPosition.Inside))
-            {
-                data = null;
-                position = TreeDataGridRowDropPosition.None;
-                return false;
-            }
-        }
+        // // We can't drop rows into themselves or their descendents.
+        // foreach (var sourceIndex in di.Indexes)
+        // {
+        //     if (sourceIndex.IsAncestorOf(targetIndex) ||
+        //         (sourceIndex == targetIndex && position == TreeDataGridRowDropPosition.Inside))
+        //     {
+        //         data = null;
+        //         position = TreeDataGridRowDropPosition.None;
+        //         return false;
+        //     }
+        // }
 
-        data = di;
-        return true;
+        // data = di;
+        // return true;
     }
 
     private void OnDragOver(DragEventArgs e)

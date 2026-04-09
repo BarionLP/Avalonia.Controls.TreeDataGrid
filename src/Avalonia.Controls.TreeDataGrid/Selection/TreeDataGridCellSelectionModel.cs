@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using Avalonia.Controls.Models.TreeDataGrid;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 
@@ -95,10 +94,7 @@ public class TreeDataGridCellSelectionModel<TModel> : ITreeDataGridCellSelection
             rowCount);
     }
 
-    bool ITreeDataGridSelectionInteraction.IsCellSelected(int columnIndex, int rowIndex)
-    {
-        return IsSelected(columnIndex, rowIndex);
-    }
+    bool ITreeDataGridSelectionInteraction.IsCellSelected(int columnIndex, int rowIndex) => IsSelected(columnIndex, rowIndex);
 
     void ITreeDataGridSelectionInteraction.OnKeyDown(TreeDataGrid sender, KeyEventArgs e)
     {
@@ -133,6 +129,11 @@ public class TreeDataGridCellSelectionModel<TModel> : ITreeDataGridCellSelection
         sender.RowsPresenter?.BringIntoView(
             rowIndex,
             sender.ColumnHeadersPresenter?.TryGetElement(columnIndex)?.Bounds);
+
+        if (sender.TryGetCell(columnIndex, rowIndex) is { Focusable: true } targetCell)
+        {
+            targetCell.Focus();
+        }
     }
 
     void ITreeDataGridSelectionInteraction.OnPointerPressed(TreeDataGrid sender, PointerPressedEventArgs e)

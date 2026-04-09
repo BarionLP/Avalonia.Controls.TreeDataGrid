@@ -164,7 +164,7 @@ public class TreeDataGridRow : TemplatedControl
 
         if (!pointerSupportsDrag ||
             e.Handled ||
-            Math.Abs(delta.X) < DragDistance && Math.Abs(delta.Y) < DragDistance ||
+            double.Abs(delta.X) < DragDistance && double.Abs(delta.Y) < DragDistance ||
             _mouseDownPosition == s_InvalidPoint)
             return;
 

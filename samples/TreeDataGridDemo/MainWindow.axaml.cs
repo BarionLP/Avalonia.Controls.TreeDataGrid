@@ -20,7 +20,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        this.AttachDevTools();
+        // this.AttachDevTools();
         DataContext = new MainWindowViewModel();
 
         _tabs = this.FindControl<TabControl>("tabs");

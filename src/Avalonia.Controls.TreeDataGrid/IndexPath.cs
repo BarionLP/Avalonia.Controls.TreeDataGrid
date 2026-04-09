@@ -36,7 +36,7 @@ public readonly struct IndexPath : IReadOnlyList<int>,
         if (indexes != null)
         {
             _index = 0;
-            _path = indexes.ToArray();
+            _path = [.. indexes];
         }
         else
         {

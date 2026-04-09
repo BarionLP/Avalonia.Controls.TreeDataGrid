@@ -76,6 +76,11 @@ public interface ITreeDataGridSource : INotifyPropertyChanged
     /// <param name="direction">The sort direction.</param>
     /// <returns>True if the sort could be performed; otherwise false.</returns>
     bool SortBy(IColumn column, ListSortDirection direction);
+
+    /// <summary>
+    /// Reverts everything to unsorted
+    /// </summary>
+    void Unsort();
 }
 
 /// <summary>
@@ -87,4 +92,12 @@ public interface ITreeDataGridSource<TModel> : ITreeDataGridSource
     /// Gets or sets the items in the data source.
     /// </summary>
     new IEnumerable<TModel> Items { get; set; }
+
+    /// <summary>
+    /// Sorts the data source using the specified comparison.
+    /// </summary>
+    /// <param name="comparison">
+    /// A <see cref="Comparison{TModel}"/> delegate that defines the item order.
+    /// </param>
+    void Sort(Comparison<TModel?>? comparison);
 }

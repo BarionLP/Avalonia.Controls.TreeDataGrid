@@ -105,6 +105,9 @@ internal static class SortHelper<T>
         }
     }
 
+    // IntroSort is recursive; block it from being inlined into itself
+    // i think the jit figures this out on its own. TODO: verify
+    // [MethodImpl(MethodImplOptions.NoInlining)]
     private static void IntroSort(Span<T> keys, int depthLimit, Comparison<T> comparer)
     {
         Debug.Assert(!keys.IsEmpty);
@@ -137,12 +140,12 @@ internal static class SortHelper<T>
 
             if (depthLimit == 0)
             {
-                HeapSort(keys.Slice(0, partitionSize), comparer);
+                HeapSort(keys[..partitionSize], comparer);
                 return;
             }
             depthLimit--;
 
-            var p = PickPivotAndPartition(keys.Slice(0, partitionSize), comparer);
+            var p = PickPivotAndPartition(keys[..partitionSize], comparer);
 
             // Note we've already partitioned around the pivot and do not have to move the pivot again.
             IntroSort(keys[(p + 1)..partitionSize], depthLimit, comparer);

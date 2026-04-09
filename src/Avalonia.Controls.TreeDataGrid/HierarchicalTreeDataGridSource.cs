@@ -190,16 +190,24 @@ public class HierarchicalTreeDataGridSource<TModel> : NotifyingBase,
         return false;
     }
 
-    public void Sort(Comparison<TModel>? comparison)
+    public void Sort(Comparison<TModel?>? comparison)
     {
         _comparison = comparison;
         _rows?.Sort(_comparison);
+        Sorted?.Invoke();
     }
 
-    IEnumerable<object>? ITreeDataGridSource.GetModelChildren(object model)
+    public void Unsort()
     {
-        return GetModelChildren((TModel)model);
+        Sort(null);
+
+        foreach (var column in Columns)
+        {
+            column.SortDirection = null;
+        }
     }
+
+    IEnumerable<object>? ITreeDataGridSource.GetModelChildren(object model) => GetModelChildren((TModel)model);
 
     public bool SortBy(IColumn? column, ListSortDirection direction)
     {

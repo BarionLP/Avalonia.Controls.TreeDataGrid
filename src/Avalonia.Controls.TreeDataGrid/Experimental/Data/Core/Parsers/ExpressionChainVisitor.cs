@@ -31,6 +31,7 @@ public class ExpressionChainVisitor<TIn>(LambdaExpression expression) : Expressi
         return [.. visitor._links];
     }
 
+    /// <inheritdoc/>
     protected override Expression VisitBinary(BinaryExpression node)
     {
         var result = base.VisitBinary(node);
@@ -39,6 +40,7 @@ public class ExpressionChainVisitor<TIn>(LambdaExpression expression) : Expressi
         return result;
     }
 
+    /// <inheritdoc/>
     protected override Expression VisitMember(MemberExpression node)
     {
         var result = base.VisitMember(node);
@@ -55,6 +57,7 @@ public class ExpressionChainVisitor<TIn>(LambdaExpression expression) : Expressi
         return result;
     }
 
+    /// <inheritdoc/>
     protected override Expression VisitMethodCall(MethodCallExpression node)
     {
         var result = base.VisitMethodCall(node);
@@ -71,6 +74,7 @@ public class ExpressionChainVisitor<TIn>(LambdaExpression expression) : Expressi
         return result;
     }
 
+    /// <inheritdoc/>
     protected override Expression VisitParameter(ParameterExpression node)
     {
         if (node == _rootExpression.Parameters[0])
@@ -78,6 +82,7 @@ public class ExpressionChainVisitor<TIn>(LambdaExpression expression) : Expressi
         return base.VisitParameter(node);
     }
 
+    /// <inheritdoc/>
     protected override Expression VisitUnary(UnaryExpression node)
     {
         var result = base.VisitUnary(node);

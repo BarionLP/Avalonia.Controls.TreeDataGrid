@@ -14,7 +14,7 @@
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="$(AvaloniaSamplesVersion)" />
     <PackageReference Include="Avalonia.Desktop" Version="$(AvaloniaSamplesVersion)" />
-    <PackageReference Include="Avalonia.Diagnostics" Version="$(AvaloniaSamplesVersion)" />
+    <!-- <PackageReference Include="Avalonia.Diagnostics" Version="$(AvaloniaSamplesVersion)" /> -->
     <PackageReference Include="Avalonia.Themes.Fluent" Version="$(AvaloniaSamplesVersion)" />
     <PackageReference Include="Avalonia.Fonts.Inter" Version="$(AvaloniaSamplesVersion)" />
     <PackageReference Include="Avalonia.ReactiveUI" Version="11.3.9" />

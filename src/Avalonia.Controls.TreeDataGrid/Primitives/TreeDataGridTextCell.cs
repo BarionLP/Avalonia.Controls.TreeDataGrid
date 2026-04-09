@@ -5,7 +5,7 @@ using Avalonia.Media;
 
 namespace Avalonia.Controls.Primitives;
 
-public sealed class TreeDataGridTextCell : TreeDataGridCell
+public class TreeDataGridTextCell : TreeDataGridCell
 {
     public static readonly DirectProperty<TreeDataGridTextCell, TextTrimming> TextTrimmingProperty =
         AvaloniaProperty.RegisterDirect<TreeDataGridTextCell, TextTrimming>(

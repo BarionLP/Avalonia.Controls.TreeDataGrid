@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Avalonia.Controls.Models.TreeDataGrid;
 using Avalonia.Layout;
 
@@ -62,8 +63,9 @@ public abstract class TreeDataGridColumnarPresenterBase<TItem> : TreeDataGridPre
 
     protected sealed override Size GetFinalConstraint(Control element, int index, Size availableSize)
     {
-        var column = Columns![index];
-        return new(column.ActualWidth, double.PositiveInfinity);
+        var width = Columns![index].ActualWidth;
+        Debug.Assert(!double.IsNaN(width)); // if it can be NaN replace with 0
+        return new(width, double.PositiveInfinity);
     }
 
     protected sealed override double CalculateSizeU(Size availableSize)

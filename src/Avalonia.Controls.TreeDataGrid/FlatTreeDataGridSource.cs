@@ -16,7 +16,7 @@ namespace Avalonia.Controls;
 public class FlatTreeDataGridSource<TModel>(IEnumerable<TModel> items) : NotifyingBase,
     ITreeDataGridSource<TModel>,
     IDisposable
-        where TModel: class
+        where TModel : class
 {
     private IEnumerable<TModel> _items = items;
     private TreeDataGridItemsSourceView<TModel> _itemsView = TreeDataGridItemsSourceView<TModel>.GetOrCreate(items);
@@ -128,36 +128,43 @@ public class FlatTreeDataGridSource<TModel>(IEnumerable<TModel> items) : Notifyi
         }
     }
 
-    bool ITreeDataGridSource.SortBy(IColumn? column, ListSortDirection direction)
+    public bool SortBy(IColumn? column, ListSortDirection direction)
     {
-        if (column is IColumn<TModel> typedColumn)
+        if (column is IColumn<TModel> typedColumn && Columns.Contains(typedColumn))
         {
-            if (!Columns.Contains(typedColumn))
-                return true;
-
             var comparer = typedColumn.GetComparison(direction);
+            if (comparer is null) return false;
 
-            if (comparer is not null)
+            Sort(comparer);
+
+            foreach (var c in Columns)
             {
-                _comparer = comparer is not null ? new FuncComparer<TModel>(comparer) : null;
-                _rows?.Sort(_comparer);
-                Sorted?.Invoke();
-                foreach (var c in Columns)
-                    c.SortDirection = c == column ? direction : null;
+                c.SortDirection = c == column ? direction : null;
             }
+
             return true;
         }
-
         return false;
     }
 
-    IEnumerable<object> ITreeDataGridSource.GetModelChildren(object model)
+    public void Sort(Comparison<TModel?>? comparison)
     {
-        return Enumerable.Empty<object>();
+        _comparer = comparison is not null ? new FuncComparer<TModel>(comparison) : null;
+        _rows?.Sort(_comparer);
+        Sorted?.Invoke();
     }
 
-    private AnonymousSortableRows<TModel> CreateRows()
+    public void Unsort()
     {
-        return new AnonymousSortableRows<TModel>(_itemsView, _comparer);
+        Sort(null);
+
+        foreach (var column in Columns)
+        {
+            column.SortDirection = null;
+        }
     }
+
+    IEnumerable<object> ITreeDataGridSource.GetModelChildren(object model) => [];
+
+    private AnonymousSortableRows<TModel> CreateRows() => new(_itemsView, _comparer);
 }
