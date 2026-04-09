@@ -1,4 +1,5 @@
-﻿using Avalonia.Controls.Primitives;
+﻿using Avalonia.Controls.Models.TreeDataGrid;
+using Avalonia.Controls.Primitives;
 
 namespace Avalonia.Controls.TreeDataGridTests;
 
@@ -8,7 +9,7 @@ internal class TestElementFactory : TreeDataGridElementFactory
     {
         return data switch
         {
-            LayoutTestCell => new LayoutTestCellControl(),
+            TextCell<string> => new LayoutTestCellControl(),
             _ => base.CreateElement(data),
         };
     }
@@ -17,7 +18,7 @@ internal class TestElementFactory : TreeDataGridElementFactory
     {
         return data switch
         {
-            LayoutTestCell _ => typeof(LayoutTestCellControl).FullName!,
+            TextCell<string> _ => typeof(LayoutTestCellControl).FullName!,
             _ => base.GetDataRecycleKey(data),
         };
     }

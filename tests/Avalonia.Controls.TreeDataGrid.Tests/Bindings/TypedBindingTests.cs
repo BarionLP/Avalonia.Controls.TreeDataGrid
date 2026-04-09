@@ -1,18 +1,14 @@
-using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Avalonia.Data;
 using Avalonia.Experimental.Data;
-using Avalonia.Headless.XUnit;
-using Xunit;
 
 namespace Avalonia.Controls.TreeDataGridTests.Bindings;
 
 public class TypedBindingTests
 {
-    [AvaloniaFact]
-    public void OneWay_Binding_Single_Link_Should_Get_Value()
+    [Test]
+    public async Task OneWay_Binding_Single_Link_Should_Get_Value()
     {
         // Arrange
         var source = new TestViewModel { Name = "Test" };
@@ -26,11 +22,11 @@ public class TypedBindingTests
         target.Bind(TestTarget.TextProperty, expression);
 
         // Assert
-        Assert.Equal("Test", target.Text);
+        await Assert.That(target.Text).IsEqualTo("Test");
     }
 
-    [AvaloniaFact]
-    public void OneWay_Binding_Single_Link_Should_Listen_To_Changes()
+    [Test]
+    public async Task OneWay_Binding_Single_Link_Should_Listen_To_Changes()
     {
         // Arrange
         var source = new TestViewModel { Name = "Test" };
@@ -45,11 +41,11 @@ public class TypedBindingTests
         source.Name = "Updated";
 
         // Assert
-        Assert.Equal("Updated", target.Text);
+        await Assert.That(target.Text).IsEqualTo("Updated");
     }
 
-    [AvaloniaFact]
-    public void TwoWay_Binding_Single_Link_Should_Listen_And_Write()
+    [Test]
+    public async Task TwoWay_Binding_Single_Link_Should_Listen_And_Write()
     {
         // Arrange
         var source = new TestViewModel { Name = "Test" };
@@ -66,18 +62,18 @@ public class TypedBindingTests
         source.Name = "Updated";
 
         // Assert
-        Assert.Equal("Updated", target.Text);
+        await Assert.That(target.Text).IsEqualTo("Updated");
 
         // Act - change target
         target.Text = "UpdatedFromTarget";
         binding.Write!.Invoke(source, target.Text);
 
         // Assert
-        Assert.Equal("UpdatedFromTarget", source.Name);
+        await Assert.That(source.Name).IsEqualTo("UpdatedFromTarget");
     }
 
-    [AvaloniaFact]
-    public void OneWay_Binding_Two_Links_Should_Get_Value()
+    [Test]
+    public async Task OneWay_Binding_Two_Links_Should_Get_Value()
     {
         // Arrange
         var child = new TestViewModel { Name = "Child" };
@@ -92,11 +88,11 @@ public class TypedBindingTests
         target.Bind(TestTarget.TextProperty, expression);
 
         // Assert
-        Assert.Equal("Child", target.Text);
+        await Assert.That(target.Text).IsEqualTo("Child");
     }
 
-    [AvaloniaFact]
-    public void OneWay_Binding_Two_Links_Should_Listen_To_Changes()
+    [Test]
+    public async Task OneWay_Binding_Two_Links_Should_Listen_To_Changes()
     {
         // Arrange
         var child = new TestViewModel { Name = "Child" };
@@ -114,18 +110,18 @@ public class TypedBindingTests
         child.Name = "UpdatedChild";
 
         // Assert
-        Assert.Equal("UpdatedChild", target.Text);
+        await Assert.That(target.Text).IsEqualTo("UpdatedChild");
 
         // Act - update intermediate property
         var newChild = new TestViewModel { Name = "NewChild" };
         source.Child = newChild;
 
         // Assert
-        Assert.Equal("NewChild", target.Text);
+        await Assert.That(target.Text).IsEqualTo("NewChild");
     }
 
-    [AvaloniaFact]
-    public void TwoWay_Binding_Two_Links_Should_Listen_And_Write()
+    [Test]
+    public async Task TwoWay_Binding_Two_Links_Should_Listen_And_Write()
     {
         // Arrange
         var child = new TestViewModel { Name = "Child" };
@@ -143,32 +139,32 @@ public class TypedBindingTests
         child.Name = "UpdatedChild";
 
         // Assert
-        Assert.Equal("UpdatedChild", target.Text);
+        await Assert.That(target.Text).IsEqualTo("UpdatedChild");
 
         // Act - update from target
         target.Text = "UpdatedFromTarget";
         binding.Write!.Invoke(source, target.Text);
 
         // Assert
-        Assert.Equal("UpdatedFromTarget", child.Name);
+        await Assert.That(child.Name).IsEqualTo("UpdatedFromTarget");
 
         // Act - change intermediate link
         var newChild = new TestViewModel { Name = "NewChild" };
         source.Child = newChild;
 
         // Assert
-        Assert.Equal("NewChild", target.Text);
+        await Assert.That(target.Text).IsEqualTo("NewChild");
 
         // Act - update from target after changing intermediate
         target.Text = "FinalUpdate";
         binding.Write!.Invoke(source, target.Text);
 
         // Assert
-        Assert.Equal("FinalUpdate", newChild.Name);
+        await Assert.That(newChild.Name).IsEqualTo("FinalUpdate");
     }
 
-    [AvaloniaFact]
-    public void OneWay_Binding_Three_Links_Should_Get_Value()
+    [Test]
+    public async Task OneWay_Binding_Three_Links_Should_Get_Value()
     {
         // Arrange
         var grandChild = new TestViewModel { Name = "GrandChild" };
@@ -184,11 +180,11 @@ public class TypedBindingTests
         target.Bind(TestTarget.TextProperty, expression);
 
         // Assert
-        Assert.Equal("GrandChild", target.Text);
+        await Assert.That(target.Text).IsEqualTo("GrandChild");
     }
 
-    [AvaloniaFact]
-    public void OneWay_Binding_Three_Links_Should_Listen_To_Changes()
+    [Test]
+    public async Task OneWay_Binding_Three_Links_Should_Listen_To_Changes()
     {
         // Arrange
         var grandChild = new TestViewModel { Name = "GrandChild" };
@@ -207,14 +203,14 @@ public class TypedBindingTests
         grandChild.Name = "UpdatedGrandChild";
 
         // Assert
-        Assert.Equal("UpdatedGrandChild", target.Text);
+        await Assert.That(target.Text).IsEqualTo("UpdatedGrandChild");
 
         // Act - update middle property
         var newGrandChild = new TestViewModel { Name = "NewGrandChild" };
         child.Child = newGrandChild;
 
         // Assert
-        Assert.Equal("NewGrandChild", target.Text);
+        await Assert.That(target.Text).IsEqualTo("NewGrandChild");
 
         // Act - update root property
         var newChildWithGrandChild = new TestViewModel
@@ -225,11 +221,11 @@ public class TypedBindingTests
         source.Child = newChildWithGrandChild;
 
         // Assert
-        Assert.Equal("NewestGrandChild", target.Text);
+        await Assert.That(target.Text).IsEqualTo("NewestGrandChild");
     }
 
-    [AvaloniaFact]
-    public void TwoWay_Binding_Three_Links_Should_Listen_And_Write()
+    [Test]
+    public async Task TwoWay_Binding_Three_Links_Should_Listen_And_Write()
     {
         // Arrange
         var grandChild = new TestViewModel { Name = "GrandChild" };
@@ -250,25 +246,25 @@ public class TypedBindingTests
 
 
         // Assert
-        Assert.Equal("UpdatedFromTarget", grandChild.Name);
+        await Assert.That(grandChild.Name).IsEqualTo("UpdatedFromTarget");
 
         // Act - change intermediate node and update from target
         var newGrandChild = new TestViewModel { Name = "NewGrandChild" };
         child.Child = newGrandChild;
 
         // Assert initial update
-        Assert.Equal("NewGrandChild", target.Text);
+        await Assert.That(target.Text).IsEqualTo("NewGrandChild");
 
         // Act - update again from target
         target.Text = "AfterIntermediateChange";
         binding.Write!.Invoke(source, target.Text);
 
         // Assert
-        Assert.Equal("AfterIntermediateChange", newGrandChild.Name);
+        await Assert.That(newGrandChild.Name).IsEqualTo("AfterIntermediateChange");
     }
 
-    [AvaloniaFact]
-    public void OneWay_Binding_Four_Links_Should_Get_Value()
+    [Test]
+    public async Task OneWay_Binding_Four_Links_Should_Get_Value()
     {
         // Arrange
         var greatGrandChild = new TestViewModel { Name = "GreatGrandChild" };
@@ -285,11 +281,11 @@ public class TypedBindingTests
         target.Bind(TestTarget.TextProperty, expression);
 
         // Assert
-        Assert.Equal("GreatGrandChild", target.Text);
+        await Assert.That(target.Text).IsEqualTo("GreatGrandChild");
     }
 
-    [AvaloniaFact]
-    public void OneWay_Binding_Four_Links_Should_Listen_To_Changes()
+    [Test]
+    public async Task OneWay_Binding_Four_Links_Should_Listen_To_Changes()
     {
         // Arrange
         var greatGrandChild = new TestViewModel { Name = "GreatGrandChild" };
@@ -309,14 +305,14 @@ public class TypedBindingTests
         greatGrandChild.Name = "UpdatedGreatGrandChild";
 
         // Assert
-        Assert.Equal("UpdatedGreatGrandChild", target.Text);
+        await Assert.That(target.Text).IsEqualTo("UpdatedGreatGrandChild");
 
         // Act - update middle node
         var newGreatGrandChild = new TestViewModel { Name = "NewGreatGrandChild" };
         grandChild.Child = newGreatGrandChild;
 
         // Assert
-        Assert.Equal("NewGreatGrandChild", target.Text);
+        await Assert.That(target.Text).IsEqualTo("NewGreatGrandChild");
 
         // Act - update higher node
         var newGrandChildWithChild = new TestViewModel
@@ -327,11 +323,11 @@ public class TypedBindingTests
         child.Child = newGrandChildWithChild;
 
         // Assert
-        Assert.Equal("BrandNewGreatGrandChild", target.Text);
+        await Assert.That(target.Text).IsEqualTo("BrandNewGreatGrandChild");
     }
 
-    [AvaloniaFact]
-    public void TwoWay_Binding_Four_Links_Should_Listen_And_Write()
+    [Test]
+    public async Task TwoWay_Binding_Four_Links_Should_Listen_And_Write()
     {
         // Arrange
         var greatGrandChild = new TestViewModel { Name = "GreatGrandChild" };
@@ -352,21 +348,21 @@ public class TypedBindingTests
         binding.Write!.Invoke(source, target.Text);
 
         // Assert
-        Assert.Equal("UpdatedFromTarget", greatGrandChild.Name);
+        await Assert.That(greatGrandChild.Name).IsEqualTo("UpdatedFromTarget");
 
         // Act - change leaf node
         var newGreatGrandChild = new TestViewModel { Name = "NewGreatGrandChild" };
         grandChild.Child = newGreatGrandChild;
 
         // Assert
-        Assert.Equal("NewGreatGrandChild", target.Text);
+        await Assert.That(target.Text).IsEqualTo("NewGreatGrandChild");
 
         // Act - update from target
         target.Text = "AfterLeafChange";
         binding.Write!.Invoke(source, target.Text);
 
         // Assert
-        Assert.Equal("AfterLeafChange", newGreatGrandChild.Name);
+        await Assert.That(newGreatGrandChild.Name).IsEqualTo("AfterLeafChange");
 
         // Act - update middle node
         var newGrandChildWithChild = new TestViewModel
@@ -377,18 +373,18 @@ public class TypedBindingTests
         child.Child = newGrandChildWithChild;
 
         // Assert
-        Assert.Equal("BrandNewGreatGrandChild", target.Text);
+        await Assert.That(target.Text).IsEqualTo("BrandNewGreatGrandChild");
 
         // Act - update from target
         target.Text = "AfterMiddleChange";
         binding.Write!.Invoke(source, target.Text);
 
         // Assert
-        Assert.Equal("AfterMiddleChange", newGrandChildWithChild.Child.Name);
+        await Assert.That(newGrandChildWithChild.Child.Name).IsEqualTo("AfterMiddleChange");
     }
 
-    [AvaloniaFact]
-    public void Binding_Should_Handle_Null_Intermediate_Values()
+    [Test]
+    public async Task Binding_Should_Handle_Null_Intermediate_Values()
     {
         // Arrange
         var source = new TestViewModel { Name = "Parent", Child = null };
@@ -409,11 +405,11 @@ public class TypedBindingTests
         source.Child = newChild;
 
         // Assert - binding should work now
-        Assert.Equal("NewChild", target.Text);
+        await Assert.That(target.Text).IsEqualTo("NewChild");
     }
 
-    [AvaloniaFact]
-    public void TwoWay_Binding_Single_Link_Should_Update_Via_OnNext()
+    [Test]
+    public async Task TwoWay_Binding_Single_Link_Should_Update_Via_OnNext()
     {
         // Arrange
         var source = new TestViewModel { Name = "Test" };
@@ -430,12 +426,12 @@ public class TypedBindingTests
         expression.OnNext("UpdatedViaOnNext");
 
         // Assert
-        Assert.Equal("UpdatedViaOnNext", source.Name);
-        Assert.Equal("UpdatedViaOnNext", target.Text);
+        await Assert.That(source.Name).IsEqualTo("UpdatedViaOnNext");
+        await Assert.That(target.Text).IsEqualTo("UpdatedViaOnNext");
     }
 
-    [AvaloniaFact]
-    public void TwoWay_Binding_Two_Links_Should_Update_Via_OnNext()
+    [Test]
+    public async Task TwoWay_Binding_Two_Links_Should_Update_Via_OnNext()
     {
         // Arrange
         var child = new TestViewModel { Name = "Child" };
@@ -453,25 +449,25 @@ public class TypedBindingTests
         expression.OnNext("UpdatedViaOnNext");
 
         // Assert
-        Assert.Equal("UpdatedViaOnNext", child.Name);
-        Assert.Equal("UpdatedViaOnNext", target.Text);
+        await Assert.That(child.Name).IsEqualTo("UpdatedViaOnNext");
+        await Assert.That(target.Text).IsEqualTo("UpdatedViaOnNext");
 
         // Act - change intermediate link
         var newChild = new TestViewModel { Name = "NewChild" };
         source.Child = newChild;
 
         // Assert
-        Assert.Equal("NewChild", target.Text);
+        await Assert.That(target.Text).IsEqualTo("NewChild");
 
         // Act - update via OnNext after changing intermediate
         expression.OnNext("AfterIntermediateChange");
 
         // Assert
-        Assert.Equal("AfterIntermediateChange", newChild.Name);
+        await Assert.That(newChild.Name).IsEqualTo("AfterIntermediateChange");
     }
 
-    [AvaloniaFact]
-    public void TwoWay_Binding_Three_Links_Should_Update_Via_OnNext()
+    [Test]
+    public async Task TwoWay_Binding_Three_Links_Should_Update_Via_OnNext()
     {
         // Arrange
         var grandChild = new TestViewModel { Name = "GrandChild" };
@@ -490,24 +486,24 @@ public class TypedBindingTests
         expression.OnNext("UpdatedViaOnNext");
 
         // Assert
-        Assert.Equal("UpdatedViaOnNext", grandChild.Name);
+        await Assert.That(grandChild.Name).IsEqualTo("UpdatedViaOnNext");
 
         // Act - change intermediate node
         var newGrandChild = new TestViewModel { Name = "NewGrandChild" };
         child.Child = newGrandChild;
 
         // Assert initial update
-        Assert.Equal("NewGrandChild", target.Text);
+        await Assert.That(target.Text).IsEqualTo("NewGrandChild");
 
         // Act - update via OnNext after changing intermediate
         expression.OnNext("AfterIntermediateChange");
 
         // Assert
-        Assert.Equal("AfterIntermediateChange", newGrandChild.Name);
+        await Assert.That(newGrandChild.Name).IsEqualTo("AfterIntermediateChange");
     }
 
-    [AvaloniaFact]
-    public void TwoWay_Binding_Should_Propagate_IsExpanded_Toggle()
+    [Test]
+    public async Task TwoWay_Binding_Should_Propagate_IsExpanded_Toggle()
     {
         // Arrange
         var node = new TestExpandableNode { IsExpanded = false };
@@ -521,41 +517,41 @@ public class TypedBindingTests
         target.Bind(TestExpandableTarget.IsExpandedProperty, expression, binding, node);
 
         // Assert initial state
-        Assert.False(target.IsExpanded);
-        Assert.False(node.IsExpanded);
-        Assert.Equal(0, node.ExpandCallCount);
-        Assert.Equal(0, node.CollapseCallCount);
+        await Assert.That(target.IsExpanded).IsFalse();
+        await Assert.That(node.IsExpanded).IsFalse();
+        await Assert.That(node.ExpandCallCount).IsZero();
+        await Assert.That(node.CollapseCallCount).IsZero();
 
         // Act - simulate ToggleExpandedCommand by directly toggling the property
         node.IsExpanded = true;
 
         // Assert expanded state propagated to target
-        Assert.True(target.IsExpanded);
-        Assert.True(node.IsExpanded);
-        Assert.Equal(1, node.ExpandCallCount);
-        Assert.Equal(0, node.CollapseCallCount);
+        await Assert.That(target.IsExpanded).IsTrue();
+        await Assert.That(node.IsExpanded).IsTrue();
+        await Assert.That(node.ExpandCallCount).IsEqualTo(1);
+        await Assert.That(node.CollapseCallCount).IsZero();
 
         // Act - toggle back to collapsed
         node.IsExpanded = false;
 
         // Assert collapsed state propagated to target
-        Assert.False(target.IsExpanded);
-        Assert.False(node.IsExpanded);
-        Assert.Equal(1, node.ExpandCallCount);
-        Assert.Equal(1, node.CollapseCallCount);
+        await Assert.That(target.IsExpanded).IsFalse();
+        await Assert.That(node.IsExpanded).IsFalse();
+        await Assert.That(node.ExpandCallCount).IsEqualTo(1);
+        await Assert.That(node.CollapseCallCount).IsEqualTo(1);
 
         // Act - toggle via target property, which should invoke Write
         node.IsExpanded = true;
 
         // Assert expanded state propagated to target
-        Assert.True(target.IsExpanded);
-        Assert.True(node.IsExpanded);
-        Assert.Equal(2, node.ExpandCallCount);
-        Assert.Equal(1, node.CollapseCallCount);
+        await Assert.That(target.IsExpanded).IsTrue();
+        await Assert.That(node.IsExpanded).IsTrue();
+        await Assert.That(node.ExpandCallCount).IsEqualTo(2);
+        await Assert.That(node.CollapseCallCount).IsEqualTo(1);
     }
 
-    [AvaloniaFact]
-    public void TwoWay_Binding_Should_Work_With_Multiple_Binding_Expressions()
+    [Test]
+    public async Task TwoWay_Binding_Should_Work_With_Multiple_Binding_Expressions()
     {
         // Arrange
         var node = new TestExpandableNode { IsExpanded = false };
@@ -577,19 +573,19 @@ public class TypedBindingTests
         node.IsExpanded = true;
 
         // Assert both targets updated
-        Assert.True(target1.IsExpanded);
-        Assert.True(target2.IsExpanded);
+        await Assert.That(target1.IsExpanded).IsTrue();
+        await Assert.That(target2.IsExpanded).IsTrue();
 
         // Act - change from one target
         target1.IsExpanded = false;
 
         // Assert all synchronized
-        Assert.False(node.IsExpanded);
-        Assert.False(target2.IsExpanded);
+        await Assert.That(node.IsExpanded).IsFalse();
+        await Assert.That(target2.IsExpanded).IsFalse();
     }
 
-    [AvaloniaFact]
-    public void TwoWay_Binding_Should_Work_With_Multiple_Binding_Expressions_And_Long_Chain()
+    [Test]
+    public async Task TwoWay_Binding_Should_Work_With_Multiple_Binding_Expressions_And_Long_Chain()
     {
         // Create a deep chain of 5 TestViewModels
         var level5 = new TestViewModel { Name = "Level5" };
@@ -615,15 +611,15 @@ public class TypedBindingTests
         target2.Bind(TestTarget.TextProperty, expression2);
 
         // Assert initial binding
-        Assert.Equal("Level5", target1.Text);
-        Assert.Equal("Level5", target2.Text);
+        await Assert.That(target1.Text).IsEqualTo("Level5");
+        await Assert.That(target2.Text).IsEqualTo("Level5");
 
         // Act - change leaf node property
         level5.Name = "Updated Level5";
 
         // Assert both targets updated
-        Assert.Equal("Updated Level5", target1.Text);
-        Assert.Equal("Updated Level5", target2.Text);
+        await Assert.That(target1.Text).IsEqualTo("Updated Level5");
+        await Assert.That(target2.Text).IsEqualTo("Updated Level5");
 
         // Act - replace a middle node in the chain
         var newLevel4 = new TestViewModel
@@ -634,23 +630,23 @@ public class TypedBindingTests
         level3.Child = newLevel4;
 
         // Assert both targets updated to the new path
-        Assert.Equal("New Level5", target1.Text);
-        Assert.Equal("New Level5", target2.Text);
+        await Assert.That(target1.Text).IsEqualTo("New Level5");
+        await Assert.That(target2.Text).IsEqualTo("New Level5");
 
         // Act - change leaf node property on the old path
         level5.Name = "Changed from Old Path";
 
         // Assert both targets still point to the new path
-        Assert.Equal("New Level5", target1.Text);
-        Assert.Equal("New Level5", target2.Text);
+        await Assert.That(target1.Text).IsEqualTo("New Level5");
+        await Assert.That(target2.Text).IsEqualTo("New Level5");
 
         // Act - update from target after chain replacement
         target1.Text = "Changed from Target1";
         binding.Write!.Invoke(root, target1.Text);
 
         // Assert the new leaf node and other target got updated
-        Assert.Equal("Changed from Target1", newLevel4.Child!.Name);
-        Assert.Equal("Changed from Target1", target2.Text);
+        await Assert.That(newLevel4.Child!.Name).IsEqualTo("Changed from Target1");
+        await Assert.That(target2.Text).IsEqualTo("Changed from Target1");
 
         // Act - replace another node higher in the chain
         var newLevel2 = new TestViewModel
@@ -672,16 +668,16 @@ public class TypedBindingTests
         level1.Child = newLevel2;
 
         // Assert both targets updated to the new deeply nested chain
-        Assert.Equal("Newest Level5", target1.Text);
-        Assert.Equal("Newest Level5", target2.Text);
+        await Assert.That(target1.Text).IsEqualTo("Newest Level5");
+        await Assert.That(target2.Text).IsEqualTo("Newest Level5");
 
         // Act - update from target after major chain replacement
         target2.Text = "Final value";
         binding.Write!.Invoke(root, target2.Text);
 
         // Assert the new deep leaf node and other target got updated
-        Assert.Equal("Final value", newLevel2.Child!.Child!.Child!.Name);
-        Assert.Equal("Final value", target1.Text);
+        await Assert.That(newLevel2.Child!.Child!.Child!.Name).IsEqualTo("Final value");
+        await Assert.That(target1.Text).IsEqualTo("Final value");
     }
 
 

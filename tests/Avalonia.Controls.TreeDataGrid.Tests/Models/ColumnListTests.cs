@@ -1,14 +1,11 @@
-﻿using System;
-using Avalonia.Controls.Models.TreeDataGrid;
-using Avalonia.Headless.XUnit;
-using Xunit;
+﻿using Avalonia.Controls.Models.TreeDataGrid;
 
 namespace Avalonia.Controls.TreeDataGridTests.Models;
 
 public class ColumnListTests
 {
-    [AvaloniaFact(Timeout = 10000)]
-    public void Columns_Are_Sized_At_End_Of_Measure()
+    [Test]
+    public async Task Columns_Are_Sized_At_End_Of_Measure()
     {
         var target = new ColumnList<Model>
         {
@@ -30,14 +27,14 @@ public class ColumnListTests
 
         target.CommitActualWidths();
 
-        Assert.Equal(100, target[0].ActualWidth);
-        Assert.Equal(60, target[1].ActualWidth);
-        Assert.Equal(85, target[2].ActualWidth);
-        Assert.Equal(255, target[3].ActualWidth);
+        await Assert.That(target[0].ActualWidth).IsEqualTo(100);
+        await Assert.That(target[1].ActualWidth).IsEqualTo(60);
+        await Assert.That(target[2].ActualWidth).IsEqualTo(85);
+        await Assert.That(target[3].ActualWidth).IsEqualTo(255);
     }
 
-    [AvaloniaFact(Timeout = 10000)]
-    public void Layout_Is_Invalidated_At_End_Of_Measure_If_AutoSized_Column_Changes_Width()
+    [Test]
+    public async Task Layout_Is_Invalidated_At_End_Of_Measure_If_AutoSized_Column_Changes_Width()
     {
         var target = new ColumnList<Model>
         {
@@ -65,7 +62,7 @@ public class ColumnListTests
 
         target.CommitActualWidths();
 
-        Assert.Equal(1, raised);
+        await Assert.That(raised).IsEqualTo(1);
     }
 
     private class Model

@@ -1,11 +1,10 @@
-﻿using System.Collections.Generic;
-using Avalonia.Controls.Primitives;
+﻿using Avalonia.Controls.Primitives;
 
 namespace Avalonia.Controls.TreeDataGridTests;
 
 internal class LayoutTestCellControl : TreeDataGridTextCell
 {
-    public List<Size> MeasureConstraints { get; } = new List<Size>();
+    public List<Size> MeasureConstraints { get; } = [];
 
     protected override Size MeasureOverride(Size availableSize)
     {

@@ -1,20 +1,14 @@
-﻿using System;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using Avalonia.Controls.Models.TreeDataGrid;
 
 namespace Avalonia.Controls.TreeDataGridTests;
 
-internal class LayoutTestColumn<TModel> : ColumnBase<TModel>
+internal class LayoutTestColumn<TModel>(string header, GridLength? width = null, ColumnOptions<TModel>? options = null) : ColumnBase<TModel>(header, width, options ?? DefaultOptions())
 {
-    public LayoutTestColumn(string header, GridLength? width = null, ColumnOptions<TModel>? options = null)
-        : base(header, width, options ?? DefaultOptions())
-    {
-    }
-
     public override ICell CreateCell(IRow<TModel> row)
     {
         var indexable = (IModelIndexableRow)row;
-        return new LayoutTestCell($"{Header} Row {indexable.ModelIndex}");
+        return new TextCell<string>($"{Header} Row {indexable.ModelIndex}");
     }
 
     public override Comparison<TModel?>? GetComparison(ListSortDirection direction)
@@ -22,11 +16,8 @@ internal class LayoutTestColumn<TModel> : ColumnBase<TModel>
         throw new NotImplementedException();
     }
 
-    private static ColumnOptions<TModel> DefaultOptions()
+    private static ColumnOptions<TModel> DefaultOptions() => new()
     {
-        return new ColumnOptions<TModel>
-        {
-            MinWidth = new GridLength(0, GridUnitType.Pixel)
-        };
-    }
+        MinWidth = new GridLength(0, GridUnitType.Pixel)
+    };
 }

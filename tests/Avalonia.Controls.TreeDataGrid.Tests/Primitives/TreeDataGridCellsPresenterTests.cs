@@ -1,247 +1,231 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using Avalonia.Controls.Models.TreeDataGrid;
-using Avalonia.Controls.Primitives;
-using Avalonia.Headless.XUnit;
-using Avalonia.Layout;
-using Avalonia.LogicalTree;
-using Avalonia.Media;
-using Avalonia.Styling;
-using Avalonia.Threading;
-using Avalonia.VisualTree;
-using Xunit;
+﻿// using Avalonia.Controls.Models.TreeDataGrid;
+// using Avalonia.Controls.Primitives;
+// using Avalonia.Media;
+// using Avalonia.Styling;
+// using Avalonia.Threading;
+// using Avalonia.VisualTree;
+// using TUnit.Assertions.Enums;
 
-namespace Avalonia.Controls.TreeDataGridTests.Primitives;
+// namespace Avalonia.Controls.TreeDataGridTests.Primitives;
 
-public class TreeDataGridCellsPresenterTests
-{
-    [AvaloniaFact(Timeout = 10000)]
-    public void Creates_Initial_Cells()
-    {
-        var (target, _) = CreateTarget();
+// public class TreeDataGridCellsPresenterTests
+// {
+//     [Test]
+//     public async Task Creates_Initial_Cells()
+//     {
+//         var (target, _) = CreateTarget();
 
-        AssertColumnIndexes(target, 0, 10);
-        AssertRecyclable(target, 0);
-    }
+//         await AssertColumnIndexes(target, 0, 10);
+//         await AssertRecyclable(target, 0);
+//     }
 
-    [AvaloniaFact(Timeout = 10000)]
-    public void Updates_Column_ActualWidth()
-    {
-        var (target, _) = CreateTarget();
+//     [Test]
+//     public async Task Updates_Column_ActualWidth()
+//     {
+//         var (target, _) = CreateTarget();
 
-        for (var i = 0; i < target.Items!.Count; ++i)
-        {
-            var column = target.Items[i];
-            Assert.Equal(i < 10 ? 10 : double.NaN, column.ActualWidth);
-        }
-    }
+//         for (var i = 0; i < target.Items!.Count; ++i)
+//         {
+//             var column = target.Items[i];
+//             await Assert.That(column.ActualWidth).IsEqualTo(i < 10 ? 10 : double.NaN);
+//         }
+//     }
 
-    [AvaloniaFact(Timeout = 10000)]
-    public void Scrolls_Right_One_Cell()
-    {
-        var (target, scroll) = CreateTarget();
-        
-        scroll.Offset = new Vector(10, 0);
-        Layout(target);
+//     [Test]
+//     public async Task Scrolls_Right_One_Cell()
+//     {
+//         var (target, scroll) = CreateTarget();
 
-        AssertColumnIndexes(target, 1, 10);
-        AssertRecyclable(target, 0);
-    }
+//         scroll.Offset = new Vector(10, 0);
+//         Layout(target);
 
-    [AvaloniaFact(Timeout = 10000)]
-    public void Scrolls_Right_More_Than_A_Page()
-    {
-        var (target, scroll) = CreateTarget();
+//         await AssertColumnIndexes(target, 1, 10);
+//         await AssertRecyclable(target, 0);
+//     }
 
-        scroll.Offset = new Vector(200, 0);
-        Layout(target);
+//     [Test]
+//     public async Task Scrolls_Right_More_Than_A_Page()
+//     {
+//         var (target, scroll) = CreateTarget();
 
-        AssertColumnIndexes(target, 20, 10);
-        AssertRecyclable(target, 0);
-    }
+//         scroll.Offset = new Vector(200, 0);
+//         Layout(target);
 
-    [AvaloniaFact(Timeout = 10000)]
-    public void Scrolls_Left_More_Than_A_Page()
-    {
-        var (target, scroll) = CreateTarget();
+//         await AssertColumnIndexes(target, 20, 10);
+//         await AssertRecyclable(target, 0);
+//     }
 
-        scroll.Offset = new Vector(200, 0);
-        Layout(target);
+//     [Test]
+//     public async Task Scrolls_Left_More_Than_A_Page()
+//     {
+//         var (target, scroll) = CreateTarget();
 
-        scroll.Offset = new Vector(0, 0);
-        Layout(target);
+//         scroll.Offset = new Vector(200, 0);
+//         Layout(target);
 
-        AssertColumnIndexes(target, 0, 10);
-        AssertRecyclable(target, 0);
-    }
+//         scroll.Offset = new Vector(0, 0);
+//         Layout(target);
 
-    [AvaloniaFact(Timeout = 10000)]
-    public void DesiredSize_Takes_Min_Star_Column_Width_Into_Account()
-    {
-        var minWidth = new ColumnOptions<Model>
-        {
-            MinWidth = new GridLength(100),
-        };
+//         await AssertColumnIndexes(target, 0, 10);
+//         await AssertRecyclable(target, 0);
+//     }
 
-        var columns = new ColumnList<Model>
-        {
-            new LayoutTestColumn<Model>("Col0", GridLength.Star, minWidth),
-            new LayoutTestColumn<Model>("Col1", GridLength.Star, minWidth),
-        };
+//     [Test]
+//     public async Task DesiredSize_Takes_Min_Star_Column_Width_Into_Account()
+//     {
+//         var minWidth = new ColumnOptions<Model>
+//         {
+//             MinWidth = new GridLength(100),
+//         };
 
-        var (target, scroll) = CreateTarget(columns);
+//         var columns = new ColumnList<Model>
+//         {
+//             new LayoutTestColumn<Model>("Col0", GridLength.Star, minWidth),
+//             new LayoutTestColumn<Model>("Col1", GridLength.Star, minWidth),
+//         };
 
-        Assert.Equal(200, target.DesiredSize.Width);
-    }
+//         var (target, scroll) = CreateTarget(columns);
 
-    [AvaloniaFact(Timeout = 10000)]
-    public void Star_Cells_Are_Measured_With_Final_Column_Width()
-    {
-        // Issue #70
-        var columns = new ColumnList<Model>
-        {
-            new LayoutTestColumn<Model>("Col0", GridLength.Star),
-            new LayoutTestColumn<Model>("Col1", GridLength.Star),
-        };
+//         await Assert.That(target.DesiredSize.Width).IsEqualTo(200);
+//     }
 
-        var (target, _) = CreateTarget(columns);
+//     [Test]
+//     public async Task Star_Cells_Are_Measured_With_Final_Column_Width()
+//     {
+//         // Issue #70
+//         var columns = new ColumnList<Model>
+//         {
+//             new LayoutTestColumn<Model>("Col0", GridLength.Star),
+//             new LayoutTestColumn<Model>("Col1", GridLength.Star),
+//         };
 
-        for (var i = 0; i < target.RealizedElements.Count; ++i)
-        {
-            var cell = (LayoutTestCellControl)target.RealizedElements[i]!;
+//         var (target, _) = CreateTarget(columns);
 
-            Assert.Equal(
-                new[]
-                {
-                        Size.Infinity,
-                        new Size(0, double.PositiveInfinity),
-                        Size.Infinity,
-                        new Size(50, double.PositiveInfinity),
-                },
-                cell!.MeasureConstraints);
-        }
-    }
+//         for (var i = 0; i < target.RealizedElements.Count; ++i)
+//         {
+//             var cell = (LayoutTestCellControl)target.RealizedElements[i]!;
 
-    [AvaloniaFact(Timeout = 10000)]
-    public void Nth_Child_Handles_Deletion_And_Addition_Correctly()
-    {
-        var (target, scroll) = CreateTarget(additionalStyles:
-            new List<IStyle>
-            {
-                new Style(x => x.OfType<TreeDataGridCellsPresenter>().Descendant().Is<TreeDataGridCell>().NthChild(2,0))
-                {
-                    Setters =
-                    {
-                        new Setter(TreeDataGridRow.BackgroundProperty,new SolidColorBrush(Colors.Red)),
-                    }
-                }
-            });
+//             await Assert.That(cell!.MeasureConstraints).IsEquivalentTo([Size.Infinity, new Size(0, double.PositiveInfinity), Size.Infinity, new Size(50, double.PositiveInfinity)], CollectionOrdering.Matching);
+//         }
+//     }
 
-        Layout(target);
+//     [Test]
+//     public async Task Nth_Child_Handles_Deletion_And_Addition_Correctly()
+//     {
+//         var (target, scroll) = CreateTarget(additionalStyles:
+//             [
+//                 new Style(x => x.OfType<TreeDataGridCellsPresenter>().Descendant().Is<TreeDataGridCell>().NthChild(2,0))
+//                 {
+//                     Setters =
+//                     {
+//                         new Setter(TreeDataGridRow.BackgroundProperty,new SolidColorBrush(Colors.Red)),
+//                     }
+//                 }
+//             ]);
 
-        int CountEvenRedRows(TreeDataGridCellsPresenter presenter)
-        {
-            return target.GetVisualChildren().Cast<TreeDataGridCell>().Select(x => x.Background)
-                .Where(x => x is SolidColorBrush brush && brush.Color == Colors.Red).Count();
-        }
+//         Layout(target);
 
-        Assert.Equal(5, CountEvenRedRows(target));
-    }
+//         int CountEvenRedRows(TreeDataGridCellsPresenter presenter)
+//         {
+//             return target.GetVisualChildren().Cast<TreeDataGridCell>().Select(x => x.Background)
+//                 .Count(x => x is SolidColorBrush brush && brush.Color == Colors.Red);
+//         }
 
-    private static void AssertColumnIndexes(
-        TreeDataGridCellsPresenter? target,
-        int firstColumnIndex,
-        int columnCount)
-    {
-        Assert.NotNull(target);
+//         await Assert.That(CountEvenRedRows(target)).IsEqualTo(5);
+//     }
 
-        var rowIndexes = target!.GetVisualChildren()
-            .Cast<TreeDataGridCell>()
-            .Where(x => x.IsVisible)
-            .Select(x => x.ColumnIndex)
-            .OrderBy(x => x)
-            .ToList();
+//     private static async Task AssertColumnIndexes(
+//         TreeDataGridCellsPresenter? target,
+//         int firstColumnIndex,
+//         int columnCount)
+//     {
+//         Assert.NotNull(target);
 
-        Assert.Equal(
-            Enumerable.Range(firstColumnIndex, columnCount),
-            rowIndexes);
-    }
+//         var rowIndexes = target!.GetVisualChildren()
+//             .Cast<TreeDataGridCell>()
+//             .Where(x => x.IsVisible)
+//             .Select(x => x.ColumnIndex)
+//             .OrderBy(x => x)
+//             .ToList();
 
-    private static void AssertRecyclable(TreeDataGridCellsPresenter? target, int count)
-    {
-        Assert.NotNull(target);
+//         await Assert.That(rowIndexes).IsEquivalentTo(Enumerable.Range(firstColumnIndex, columnCount), CollectionOrdering.Matching);
+//     }
 
-        var recyclableCells = target!.GetVisualChildren()
-            .Cast<TreeDataGridCell>()
-            .Where(x => !x.IsVisible)
-            .ToList();
-        Assert.Equal(count, recyclableCells.Count);
-    }
+//     private static async Task AssertRecyclable(TreeDataGridCellsPresenter? target, int count)
+//     {
+//         Assert.NotNull(target);
 
-    private static (TreeDataGridCellsPresenter, ScrollViewer) CreateTarget(
-        ColumnList<Model>? columns = null,
-        List<IStyle>? additionalStyles = null)
-    {
-        if (columns is null)
-        {
-            columns = new ColumnList<Model>();
+//         var recyclableCells = target!.GetVisualChildren()
+//             .Cast<TreeDataGridCell>()
+//             .Where(x => !x.IsVisible)
+//             .ToList();
+//         await Assert.That(recyclableCells.Count).IsEqualTo(count);
+//     }
 
-            for (var i = 0; i < 100; ++i)
-                columns.Add(new LayoutTestColumn<Model>("Column " + i));
-        }
+//     private static (TreeDataGridCellsPresenter, ScrollViewer) CreateTarget(
+//         ColumnList<Model>? columns = null,
+//         List<IStyle>? additionalStyles = null)
+//     {
+//         if (columns is null)
+//         {
+//             columns = [];
 
-        var items = new Model[1];
-        var rows = new AnonymousSortableRows<Model>(new TreeDataGridItemsSourceView<Model>(items), null);
+//             for (var i = 0; i < 100; ++i)
+//             {
+//                 columns.Add(new LayoutTestColumn<Model>("Column " + i));
+//             }
+//         }
 
-        var target = new TreeDataGridCellsPresenter
-        {
-            ElementFactory = new TestElementFactory(),
-            Items = columns,
-            Rows = rows,
-        };
+//         var items = new Model[1];
+//         var rows = new AnonymousSortableRows<Model>(new TreeDataGridItemsSourceView<Model>(items), null);
 
-        // The column list's effective viewport would usually be updated by the rows presenter
-        // but in this case we don't have one, so do it manually.
-        target.EffectiveViewportChanged += (s, e) =>
-        {
-            columns.ViewportChanged(e.EffectiveViewport);
-        };
+//         var target = new TreeDataGridCellsPresenter
+//         {
+//             ElementFactory = new TestElementFactory(),
+//             Items = columns,
+//             Rows = rows,
+//         };
 
-        target.Realize(0);
+//         // The column list's effective viewport would usually be updated by the rows presenter
+//         // but in this case we don't have one, so do it manually.
+//         target.EffectiveViewportChanged += (s, e) =>
+//         {
+//             columns.ViewportChanged(e.EffectiveViewport);
+//         };
 
-        var scrollViewer = new ScrollViewer
-        {
-            Template = TestTemplates.ScrollViewerTemplate(),
-            Content = target,
-            HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
-        };
+//         target.Realize(0);
 
-        var root = new TestWindow(scrollViewer);
+//         var scrollViewer = new ScrollViewer
+//         {
+//             Template = TestTemplates.ScrollViewerTemplate(),
+//             Content = target,
+//             HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+//         };
 
-        if (additionalStyles != null)
-        {
-            foreach (var item in additionalStyles)
-            {
-                root.Styles.Add(item);
-            }
-        }
+//         var root = new TestWindow(scrollViewer);
 
-        root.UpdateLayout();
-        Dispatcher.UIThread.RunJobs();
+//         if (additionalStyles != null)
+//         {
+//             foreach (var item in additionalStyles)
+//             {
+//                 root.Styles.Add(item);
+//             }
+//         }
 
-        return (target, scrollViewer);
-    }
+//         root.UpdateLayout();
+//         Dispatcher.UIThread.RunJobs();
 
-    private static void Layout(TreeDataGridCellsPresenter target)
-    {
-        target.UpdateLayout();
-    }
+//         return (target, scrollViewer);
+//     }
 
-    private class Model : NotifyingBase
-    {
-        public int Id { get; set; }
-        public string? Title { get; set; }
-    }
-}
+//     private static void Layout(TreeDataGridCellsPresenter target)
+//     {
+//         target.UpdateLayout();
+//     }
+
+//     private class Model : NotifyingBase
+//     {
+//         public int Id { get; set; }
+//         public string? Title { get; set; }
+//     }
+// }

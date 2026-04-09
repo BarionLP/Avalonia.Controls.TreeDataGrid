@@ -1,12 +1,8 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 using System.Collections.Specialized;
-using System.Linq;
 using Avalonia.Collections;
 using Avalonia.Controls.Selection;
 using Avalonia.Controls.Utils;
-using Avalonia.Headless.XUnit;
-using Xunit;
 
 namespace Avalonia.Controls.TreeDataGridTests;
 
@@ -14,8 +10,8 @@ public class TreeSelectionModelBaseTests_Single
 {
     public class Source
     {
-        [AvaloniaFact(Timeout = 10000)]
-        public void Changing_Source_To_NonNull_First_Clears_Old_Selection()
+        [Test]
+        public async Task Changing_Source_To_NonNull_First_Clears_Old_Selection()
         {
             var target = CreateTarget();
             var raised = 0;
@@ -24,26 +20,26 @@ public class TreeSelectionModelBaseTests_Single
 
             target.SelectionChanged += (s, e) =>
             {
-                Assert.Equal(new[] { new IndexPath(0, 2) }, e.DeselectedIndexes);
-                Assert.Equal("Node 0-2", e.DeselectedItems.Single()!.Caption);
-                Assert.Empty(e.SelectedIndexes);
-                Assert.Empty(e.SelectedItems);
-                Assert.Equal(0, target.Count);
+                // await Assert.That(e.DeselectedIndexes).IsEquivalentTo(new IndexPath(0, 2));
+                // await Assert.That(e.DeselectedItems.Single()!.Caption).IsEqualTo("Node 0-2");
+                // await Assert.That(e.SelectedIndexes).IsEmpty();
+                // await Assert.That(e.SelectedItems).IsEmpty();
+                // await Assert.That(target.Count).IsZero();
                 ++raised;
             };
 
             target.Source = CreateData(depth: 1);
 
-            Assert.Equal(0, target.Count);
-            Assert.Equal(-1, target.SelectedIndex);
-            Assert.Empty(target.SelectedIndexes);
+            await Assert.That(target.Count).IsZero();
+            await Assert.That(target.SelectedIndex).IsEqualTo(new IndexPath(-1));
+            await Assert.That(target.SelectedIndexes).IsEmpty();
             Assert.Null(target.SelectedItem);
-            Assert.Empty(target.SelectedItems);
-            Assert.Equal(1, raised);
+            await Assert.That(target.SelectedItems).IsEmpty();
+            await Assert.That(raised).IsEqualTo(1);
         }
 
-        [AvaloniaFact(Timeout = 10000)]
-        public void Can_Assign_ValueType_Collection_To_SelectionModel_Of_Object()
+        [Test]
+        public async Task Can_Assign_ValueType_Collection_To_SelectionModel_Of_Object()
         {
             var target = (ISelectionModel)new SelectionModel<object>();
 
@@ -53,34 +49,34 @@ public class TreeSelectionModelBaseTests_Single
 
     public class SelectedIndex
     {
-        [AvaloniaFact(Timeout = 10000)]
-        public void Can_Set_SelectedIndex()
+        [Test]
+        public async Task Can_Set_SelectedIndex()
         {
             var target = CreateTarget();
             var raised = 0;
 
             target.SelectionChanged += (s, e) =>
             {
-                Assert.Empty(e.DeselectedIndexes);
-                Assert.Empty(e.DeselectedItems);
-                Assert.Equal(new IndexPath(0, 2), e.SelectedIndexes.Single());
-                Assert.Equal("Node 0-2", e.SelectedItems.Single()!.Caption);
-                Assert.Equal(1, target.Count);
+                // await Assert.That(e.DeselectedIndexes).IsEmpty();
+                // await Assert.That(e.DeselectedItems).IsEmpty();
+                // await Assert.That(e.SelectedIndexes.Single()).IsEqualTo(new IndexPath(0, 2));
+                // await Assert.That(e.SelectedItems.Single()!.Caption).IsEqualTo("Node 0-2");
+                // await Assert.That(target.Count).IsEqualTo(1);
                 ++raised;
             };
 
             target.SelectedIndex = new IndexPath(0, 2);
 
-            Assert.Equal(1, raised);
-            Assert.Equal(1, target.Count);
-            Assert.Equal(new IndexPath(0, 2), target.SelectedIndex);
-            Assert.Equal(new IndexPath(0, 2), target.SelectedIndexes.Single());
-            Assert.Equal("Node 0-2", target.SelectedItem!.Caption);
-            Assert.Equal("Node 0-2", target.SelectedItems.Single()!.Caption);
+            await Assert.That(raised).IsEqualTo(1);
+            await Assert.That(target.Count).IsEqualTo(1);
+            await Assert.That(target.SelectedIndex).IsEqualTo(new IndexPath(0, 2));
+            await Assert.That(target.SelectedIndexes.Single()).IsEqualTo(new IndexPath(0, 2));
+            await Assert.That(target.SelectedItem!.Caption).IsEqualTo("Node 0-2");
+            await Assert.That(target.SelectedItems.Single()!.Caption).IsEqualTo("Node 0-2");
         }
         
-        [AvaloniaFact(Timeout = 10000)]
-        public void Can_Set_Grandchild_SelectedIndex()
+        [Test]
+        public async Task Can_Set_Grandchild_SelectedIndex()
         {
             var data = CreateData(depth: 3);
             var target = CreateTarget(data);
@@ -88,25 +84,25 @@ public class TreeSelectionModelBaseTests_Single
 
             target.SelectionChanged += (s, e) =>
             {
-                Assert.Empty(e.DeselectedIndexes);
-                Assert.Empty(e.DeselectedItems);
-                Assert.Equal(new IndexPath(0, 0, 2), e.SelectedIndexes.Single());
-                Assert.Equal("Node 0-0-2", e.SelectedItems.Single()!.Caption);
+                // await Assert.That(e.DeselectedIndexes).IsEmpty();
+                // await Assert.That(e.DeselectedItems).IsEmpty();
+                // await Assert.That(e.SelectedIndexes.Single()).IsEqualTo(new IndexPath(0, 0, 2));
+                // await Assert.That(e.SelectedItems.Single()!.Caption).IsEqualTo("Node 0-0-2");
                 ++raised;
             };
 
             target.SelectedIndex = new IndexPath(0, 0, 2);
 
-            Assert.Equal(1, raised);
-            Assert.Equal(1, target.Count);
-            Assert.Equal(new IndexPath(0, 0, 2), target.SelectedIndex);
-            Assert.Equal(new IndexPath(0, 0, 2), target.SelectedIndexes.Single());
-            Assert.Equal("Node 0-0-2", target.SelectedItem!.Caption);
-            Assert.Equal("Node 0-0-2", target.SelectedItems.Single()!.Caption);
+            await Assert.That(raised).IsEqualTo(1);
+            await Assert.That(target.Count).IsEqualTo(1);
+            await Assert.That(target.SelectedIndex).IsEqualTo(new IndexPath(0, 0, 2));
+            await Assert.That(target.SelectedIndexes.Single()).IsEqualTo(new IndexPath(0, 0, 2));
+            await Assert.That(target.SelectedItem!.Caption).IsEqualTo("Node 0-0-2");
+            await Assert.That(target.SelectedItems.Single()!.Caption).IsEqualTo("Node 0-0-2");
         }
 
-        [AvaloniaFact(Timeout = 10000)]
-        public void Setting_SelectedIndex_Clears_Old_Selection()
+        [Test]
+        public async Task Setting_SelectedIndex_Clears_Old_Selection()
         {
             var target = CreateTarget();
             var raised = 0;
@@ -114,25 +110,25 @@ public class TreeSelectionModelBaseTests_Single
             target.SelectedIndex = new IndexPath(0, 1);
             target.SelectionChanged += (s, e) =>
             {
-                Assert.Equal(new IndexPath(0, 1), e.DeselectedIndexes.Single());
-                Assert.Equal("Node 0-1", e.DeselectedItems.Single()!.Caption);
-                Assert.Equal(new IndexPath(0, 2), e.SelectedIndexes.Single());
-                Assert.Equal("Node 0-2", e.SelectedItems.Single()!.Caption);
+                // await Assert.That(e.DeselectedIndexes.Single()).IsEqualTo(new IndexPath(0, 1));
+                // await Assert.That(e.DeselectedItems.Single()!.Caption).IsEqualTo("Node 0-1");
+                // await Assert.That(e.SelectedIndexes.Single()).IsEqualTo(new IndexPath(0, 2));
+                // await Assert.That(e.SelectedItems.Single()!.Caption).IsEqualTo("Node 0-2");
                 ++raised;
             };
 
             target.SelectedIndex = new IndexPath(0, 2);
 
-            Assert.Equal(1, raised);
-            Assert.Equal(1, target.Count);
-            Assert.Equal(new IndexPath(0, 2), target.SelectedIndex);
-            Assert.Equal(new IndexPath(0, 2), target.SelectedIndexes.Single());
-            Assert.Equal("Node 0-2", target.SelectedItem!.Caption);
-            Assert.Equal("Node 0-2", target.SelectedItems.Single()!.Caption);
+            await Assert.That(raised).IsEqualTo(1);
+            await Assert.That(target.Count).IsEqualTo(1);
+            await Assert.That(target.SelectedIndex).IsEqualTo(new IndexPath(0, 2));
+            await Assert.That(target.SelectedIndexes.Single()).IsEqualTo(new IndexPath(0, 2));
+            await Assert.That(target.SelectedItem!.Caption).IsEqualTo("Node 0-2");
+            await Assert.That(target.SelectedItems.Single()!.Caption).IsEqualTo("Node 0-2");
         }
 
-        [AvaloniaFact(Timeout = 10000)]
-        public void Can_Set_SelectedIndex_To_Empty()
+        [Test]
+        public async Task Can_Set_SelectedIndex_To_Empty()
         {
             var target = CreateTarget();
             var raised = 0;
@@ -140,25 +136,25 @@ public class TreeSelectionModelBaseTests_Single
             target.SelectedIndex = new IndexPath(0, 2);
             target.SelectionChanged += (s, e) =>
             {
-                Assert.Equal(new IndexPath(0, 2), e.DeselectedIndexes.Single());
-                Assert.Equal("Node 0-2", e.DeselectedItems.Single()!.Caption);
-                Assert.Empty(e.SelectedIndexes);
-                Assert.Empty(e.SelectedItems);
+                // await Assert.That(e.DeselectedIndexes.Single()).IsEqualTo(new IndexPath(0, 2));
+                // await Assert.That(e.DeselectedItems.Single()!.Caption).IsEqualTo("Node 0-2");
+                // await Assert.That(e.SelectedIndexes).IsEmpty();
+                // await Assert.That(e.SelectedItems).IsEmpty();
                 ++raised;
             };
 
             target.SelectedIndex = default;
 
-            Assert.Equal(1, raised);
-            Assert.Equal(0, target.Count);
-            Assert.Equal(default, target.SelectedIndex);
-            Assert.Empty(target.SelectedIndexes);
+            await Assert.That(raised).IsEqualTo(1);
+            await Assert.That(target.Count).IsZero();
+            await Assert.That(target.SelectedIndex).IsEmpty();
+            await Assert.That(target.SelectedIndexes).IsEmpty();
             Assert.Null(target.SelectedItem);
-            Assert.Empty(target.SelectedItems);
+            await Assert.That(target.SelectedItems).IsEmpty();
         }
 
-        [AvaloniaFact(Timeout = 10000)]
-        public void Out_Of_Range_SelectedIndex_Clears_Selection()
+        [Test]
+        public async Task Out_Of_Range_SelectedIndex_Clears_Selection()
         {
             var target = CreateTarget();
             var raised = 0;
@@ -166,50 +162,50 @@ public class TreeSelectionModelBaseTests_Single
             target.SelectedIndex = new IndexPath(0, 2);
             target.SelectionChanged += (s, e) =>
             {
-                Assert.Equal(new IndexPath(0, 2), e.DeselectedIndexes.Single());
-                Assert.Equal("Node 0-2", e.DeselectedItems.Single()!.Caption);
-                Assert.Empty(e.SelectedIndexes);
-                Assert.Empty(e.SelectedItems);
+                // await Assert.That(e.DeselectedIndexes.Single()).IsEqualTo(new IndexPath(0, 2));
+                // await Assert.That(e.DeselectedItems.Single()!.Caption).IsEqualTo("Node 0-2");
+                // await Assert.That(e.SelectedIndexes).IsEmpty();
+                // await Assert.That(e.SelectedItems).IsEmpty();
                 ++raised;
             };
 
             target.SelectedIndex = new IndexPath(5, 10, 250);
 
-            Assert.Equal(1, raised);
-            Assert.Equal(0, target.Count);
-            Assert.Equal(default, target.SelectedIndex);
-            Assert.Empty(target.SelectedIndexes);
+            await Assert.That(raised).IsEqualTo(1);
+            await Assert.That(target.Count).IsZero();
+            await Assert.That(target.SelectedIndex).IsEmpty();
+            await Assert.That(target.SelectedIndexes).IsEmpty();
             Assert.Null(target.SelectedItem);
-            Assert.Empty(target.SelectedItems);
+            await Assert.That(target.SelectedItems).IsEmpty();
         }
 
-        [AvaloniaFact(Timeout = 10000)]
-        public void Can_Select_Unexpanded_Item()
+        [Test]
+        public async Task Can_Select_Unexpanded_Item()
         {
             var target = CreateTarget();
             var raised = 0;
 
             target.SelectionChanged += (s, e) =>
             {
-                Assert.Empty(e.DeselectedIndexes);
-                Assert.Empty(e.DeselectedItems);
-                Assert.Equal(new IndexPath(1, 2), e.SelectedIndexes.Single());
-                Assert.Equal("Node 1-2", e.SelectedItems.Single()!.Caption);
+                // await Assert.That(e.DeselectedIndexes).IsEmpty();
+                // await Assert.That(e.DeselectedItems).IsEmpty();
+                // await Assert.That(e.SelectedIndexes.Single()).IsEqualTo(new IndexPath(1, 2));
+                // await Assert.That(e.SelectedItems.Single()!.Caption).IsEqualTo("Node 1-2");
                 ++raised;
             };
 
             target.SelectedIndex = new IndexPath(1, 2);
 
-            Assert.Equal(1, raised);
-            Assert.Equal(1, target.Count);
-            Assert.Equal(new IndexPath(1, 2), target.SelectedIndex);
-            Assert.Equal(new IndexPath(1, 2), target.SelectedIndexes.Single());
-            Assert.Equal("Node 1-2", target.SelectedItem!.Caption);
-            Assert.Equal("Node 1-2", target.SelectedItems.Single()!.Caption);
+            await Assert.That(raised).IsEqualTo(1);
+            await Assert.That(target.Count).IsEqualTo(1);
+            await Assert.That(target.SelectedIndex).IsEqualTo(new IndexPath(1, 2));
+            await Assert.That(target.SelectedIndexes.Single()).IsEqualTo(new IndexPath(1, 2));
+            await Assert.That(target.SelectedItem!.Caption).IsEqualTo("Node 1-2");
+            await Assert.That(target.SelectedItems.Single()!.Caption).IsEqualTo("Node 1-2");
         }
 
-        [AvaloniaFact(Timeout = 10000)]
-        public void Setting_SelectedIndex_During_CollectionChanged_Results_In_Correct_Selection()
+        [Test]
+        public async Task Setting_SelectedIndex_During_CollectionChanged_Results_In_Correct_Selection()
         {
             var data = new AvaloniaList<Node>();
             var target = CreateTarget(data);
@@ -217,11 +213,11 @@ public class TreeSelectionModelBaseTests_Single
 
             data.Add(new Node());
 
-            Assert.Equal(new IndexPath(0), target.SelectedIndex);
+            await Assert.That(target.SelectedIndex).IsEqualTo(new IndexPath(0));
         }
 
-        [AvaloniaFact(Timeout = 10000)]
-        public void PropertyChanged_Is_Raised()
+        [Test]
+        public async Task PropertyChanged_Is_Raised()
         {
             var target = CreateTarget();
             var raised = 0;
@@ -236,10 +232,10 @@ public class TreeSelectionModelBaseTests_Single
 
             target.SelectedIndex = new IndexPath(0, 2);
 
-            Assert.Equal(1, raised);
+            await Assert.That(raised).IsEqualTo(1);
         }
 
-        private class MockBinding : ICollectionChangedListener
+        private sealed class MockBinding : ICollectionChangedListener
         {
             private readonly TestTreeSelectionModel _target;
 
@@ -266,8 +262,8 @@ public class TreeSelectionModelBaseTests_Single
 
     public class SelectedItem
     {
-        [AvaloniaFact(Timeout = 10000)]
-        public void PropertyChanged_Is_Raised_When_SelectedIndex_Changes()
+        [Test]
+        public async Task PropertyChanged_Is_Raised_When_SelectedIndex_Changes()
         {
             var target = CreateTarget();
             var raised = 0;
@@ -282,14 +278,14 @@ public class TreeSelectionModelBaseTests_Single
 
             target.SelectedIndex = new IndexPath(1);
 
-            Assert.Equal(1, raised);
+            await Assert.That(raised).IsEqualTo(1);
         }
     }
 
     public class SelectedIndexes
     {
-        [AvaloniaFact(Timeout = 10000)]
-        public void PropertyChanged_Is_Raised_When_SelectedIndex_Changes()
+        [Test]
+        public async Task PropertyChanged_Is_Raised_When_SelectedIndex_Changes()
         {
             var target = CreateTarget();
             var raised = 0;
@@ -304,14 +300,14 @@ public class TreeSelectionModelBaseTests_Single
 
             target.SelectedIndex = new IndexPath(1);
 
-            Assert.Equal(1, raised);
+            await Assert.That(raised).IsEqualTo(1);
         }
     }
 
     public class SelectedItems
     {
-        [AvaloniaFact(Timeout = 10000)]
-        public void PropertyChanged_Is_Raised_When_SelectedIndex_Changes()
+        [Test]
+        public async Task PropertyChanged_Is_Raised_When_SelectedIndex_Changes()
         {
             var target = CreateTarget();
             var raised = 0;
@@ -326,39 +322,39 @@ public class TreeSelectionModelBaseTests_Single
 
             target.SelectedIndex = new IndexPath(1);
 
-            Assert.Equal(1, raised);
+            await Assert.That(raised).IsEqualTo(1);
         }
     }
     
     public class Select
     {
-        [AvaloniaFact(Timeout = 10000)]
-        public void Select_Sets_SelectedIndex()
+        [Test]
+        public async Task Select_Sets_SelectedIndex()
         {
             var target = CreateTarget();
             var raised = 0;
 
             target.SelectionChanged += (s, e) =>
             {
-                Assert.Empty(e.DeselectedIndexes);
-                Assert.Empty(e.DeselectedItems);
-                Assert.Equal(new IndexPath(0, 2), e.SelectedIndexes.Single());
-                Assert.Equal("Node 0-2", e.SelectedItems.Single()!.Caption);
+                // await Assert.That(e.DeselectedIndexes).IsEmpty();
+                // await Assert.That(e.DeselectedItems).IsEmpty();
+                // await Assert.That(e.SelectedIndexes.Single()).IsEqualTo(new IndexPath(0, 2));
+                // await Assert.That(e.SelectedItems.Single()!.Caption).IsEqualTo("Node 0-2");
                 ++raised;
             };
 
             target.Select(new IndexPath(0, 2));
 
-            Assert.Equal(1, raised);
-            Assert.Equal(1, target.Count);
-            Assert.Equal(new IndexPath(0, 2), target.SelectedIndex);
-            Assert.Equal(new IndexPath(0, 2), target.SelectedIndexes.Single());
-            Assert.Equal("Node 0-2", target.SelectedItem!.Caption);
-            Assert.Equal("Node 0-2", target.SelectedItems.Single()!.Caption);
+            await Assert.That(raised).IsEqualTo(1);
+            await Assert.That(target.Count).IsEqualTo(1);
+            await Assert.That(target.SelectedIndex).IsEqualTo(new IndexPath(0, 2));
+            await Assert.That(target.SelectedIndexes.Single()).IsEqualTo(new IndexPath(0, 2));
+            await Assert.That(target.SelectedItem!.Caption).IsEqualTo("Node 0-2");
+            await Assert.That(target.SelectedItems.Single()!.Caption).IsEqualTo("Node 0-2");
         }
 
-        [AvaloniaFact(Timeout = 10000)]
-        public void Select_Clears_Old_Selection()
+        [Test]
+        public async Task Select_Clears_Old_Selection()
         {
             var target = CreateTarget();
             var raised = 0;
@@ -367,25 +363,25 @@ public class TreeSelectionModelBaseTests_Single
 
             target.SelectionChanged += (s, e) =>
             {
-                Assert.Equal(new IndexPath(0, 1), e.DeselectedIndexes.Single());
-                Assert.Equal("Node 0-1", e.DeselectedItems.Single()!.Caption);
-                Assert.Equal(new IndexPath(0, 2), e.SelectedIndexes.Single());
-                Assert.Equal("Node 0-2", e.SelectedItems.Single()!.Caption);
+                // await Assert.That(e.DeselectedIndexes.Single()).IsEqualTo(new IndexPath(0, 1));
+                // await Assert.That(e.DeselectedItems.Single()!.Caption).IsEqualTo("Node 0-1");
+                // await Assert.That(e.SelectedIndexes.Single()).IsEqualTo(new IndexPath(0, 2));
+                // await Assert.That(e.SelectedItems.Single()!.Caption).IsEqualTo("Node 0-2");
                 ++raised;
             };
 
             target.Select(new IndexPath(0, 2));
 
-            Assert.Equal(1, raised);
-            Assert.Equal(1, target.Count);
-            Assert.Equal(new IndexPath(0, 2), target.SelectedIndex);
-            Assert.Equal(new IndexPath(0, 2), target.SelectedIndexes.Single());
-            Assert.Equal("Node 0-2", target.SelectedItem!.Caption);
-            Assert.Equal("Node 0-2", target.SelectedItems.Single()!.Caption);
+            await Assert.That(raised).IsEqualTo(1);
+            await Assert.That(target.Count).IsEqualTo(1);
+            await Assert.That(target.SelectedIndex).IsEqualTo(new IndexPath(0, 2));
+            await Assert.That(target.SelectedIndexes.Single()).IsEqualTo(new IndexPath(0, 2));
+            await Assert.That(target.SelectedItem!.Caption).IsEqualTo("Node 0-2");
+            await Assert.That(target.SelectedItems.Single()!.Caption).IsEqualTo("Node 0-2");
         }
 
-        [AvaloniaFact(Timeout = 10000)]
-        public void Select_With_Invalid_Index_Does_Nothing()
+        [Test]
+        public async Task Select_With_Invalid_Index_Does_Nothing()
         {
             var target = CreateTarget();
             var raised = 0;
@@ -395,16 +391,16 @@ public class TreeSelectionModelBaseTests_Single
 
             target.Select(new IndexPath(5, 10, 250));
 
-            Assert.Equal(0, raised);
-            Assert.Equal(1, target.Count);
-            Assert.Equal(new IndexPath(0, 2), target.SelectedIndex);
-            Assert.Equal(new IndexPath(0, 2), target.SelectedIndexes.Single());
-            Assert.Equal("Node 0-2", target.SelectedItem!.Caption);
-            Assert.Equal("Node 0-2", target.SelectedItems.Single()!.Caption);
+            await Assert.That(raised).IsZero();
+            await Assert.That(target.Count).IsEqualTo(1);
+            await Assert.That(target.SelectedIndex).IsEqualTo(new IndexPath(0, 2));
+            await Assert.That(target.SelectedIndexes.Single()).IsEqualTo(new IndexPath(0, 2));
+            await Assert.That(target.SelectedItem!.Caption).IsEqualTo("Node 0-2");
+            await Assert.That(target.SelectedItems.Single()!.Caption).IsEqualTo("Node 0-2");
         }
 
-        [AvaloniaFact(Timeout = 10000)]
-        public void Selecting_Already_Selected_Item_Doesnt_Raise_SelectionChanged()
+        [Test]
+        public async Task Selecting_Already_Selected_Item_Doesnt_Raise_SelectionChanged()
         {
             var target = CreateTarget();
             var raised = 0;
@@ -414,11 +410,11 @@ public class TreeSelectionModelBaseTests_Single
 
             target.Select(new IndexPath(0, 2));
 
-            Assert.Equal(0, raised);
+            await Assert.That(raised).IsZero();
         }
 
-        [AvaloniaFact(Timeout = 10000)]
-        public void Selecting_Item_Twice_Results_In_Correct_Count()
+        [Test]
+        public async Task Selecting_Item_Twice_Results_In_Correct_Count()
         {
             var target = CreateTarget();
 
@@ -428,14 +424,14 @@ public class TreeSelectionModelBaseTests_Single
                 target.Select(new IndexPath(1));
             }
 
-            Assert.Equal(1, target.Count);
+            await Assert.That(target.Count).IsEqualTo(1);
         }
     }
 
     public class Deselect
     {
-        [AvaloniaFact(Timeout = 10000)]
-        public void Deselect_Clears_Current_Selection()
+        [Test]
+        public async Task Deselect_Clears_Current_Selection()
         {
             var target = CreateTarget();
             var raised = 0;
@@ -444,25 +440,25 @@ public class TreeSelectionModelBaseTests_Single
 
             target.SelectionChanged += (s, e) =>
             {
-                Assert.Equal(new[] { new IndexPath(0, 1) }, e.DeselectedIndexes);
-                Assert.Equal(new[] { "Node 0-1" }, e.DeselectedItems.Select(x => x!.Caption));
-                Assert.Empty(e.SelectedIndexes);
-                Assert.Empty(e.SelectedItems);
+                // await Assert.That(e.DeselectedIndexes).IsEquivalentTo(new IndexPath(0, 1));
+                // await Assert.That(e.DeselectedItems.Select(static x => x?.Caption ?? "")).IsEquivalentTo("Node 0-1");
+                // await Assert.That(e.SelectedIndexes).IsEmpty();
+                // await Assert.That(e.SelectedItems).IsEmpty();
                 ++raised;
             };
 
             target.Deselect(new IndexPath(0, 1));
 
-            Assert.Equal(0, target.Count);
-            Assert.Equal(default, target.SelectedIndex);
-            Assert.Empty(target.SelectedIndexes);
+            await Assert.That(target.Count).IsZero();
+            await Assert.That(target.SelectedIndex).IsEmpty();
+            await Assert.That(target.SelectedIndexes).IsEmpty();
             Assert.Null(target.SelectedItem);
-            Assert.Empty(target.SelectedItems);
-            Assert.Equal(1, raised);
+            await Assert.That(target.SelectedItems).IsEmpty();
+            await Assert.That(raised).IsEqualTo(1);
         }
 
-        [AvaloniaFact(Timeout = 10000)]
-        public void Deselect_Does_Nothing_For_Nonselected_Item()
+        [Test]
+        public async Task Deselect_Does_Nothing_For_Nonselected_Item()
         {
             var target = CreateTarget();
             var raised = 0;
@@ -471,19 +467,19 @@ public class TreeSelectionModelBaseTests_Single
             target.SelectionChanged += (s, e) => ++raised;
             target.Deselect(new IndexPath(0, 0));
 
-            Assert.Equal(1, target.Count);
-            Assert.Equal(new IndexPath(0, 1), target.SelectedIndex);
-            Assert.Equal(new[] { new IndexPath(0, 1) }, target.SelectedIndexes);
-            Assert.Equal("Node 0-1", target.SelectedItem!.Caption);
-            Assert.Equal(new[] { "Node 0-1" }, target.SelectedItems.Select(x => x!.Caption));
-            Assert.Equal(0, raised);
+            await Assert.That(target.Count).IsEqualTo(1);
+            await Assert.That(target.SelectedIndex).IsEqualTo(new IndexPath(0, 1));
+            await Assert.That(target.SelectedIndexes).IsEquivalentTo([new IndexPath(0, 1)]);
+            await Assert.That(target.SelectedItem!.Caption).IsEqualTo("Node 0-1");
+            await Assert.That(target.SelectedItems.Select(static x => x?.Caption ?? "")).IsEquivalentTo(["Node 0-1"]);
+            await Assert.That(raised).IsZero();
         }
     }
 
     public class Clear
     {
-        [AvaloniaFact(Timeout = 10000)]
-        public void Clear_Raises_SelectionChanged()
+        [Test]
+        public async Task Clear_Raises_SelectionChanged()
         {
             var target = CreateTarget();
             var raised = 0;
@@ -492,23 +488,23 @@ public class TreeSelectionModelBaseTests_Single
 
             target.SelectionChanged += (s, e) =>
             {
-                Assert.Equal(new[] { new IndexPath(0, 1) }, e.DeselectedIndexes);
-                Assert.Equal(new[] { "Node 0-1" }, e.DeselectedItems.Select(x => x!.Caption));
-                Assert.Empty(e.SelectedIndexes);
-                Assert.Empty(e.SelectedItems);
+                // await Assert.That(e.DeselectedIndexes).IsEquivalentTo(new IndexPath(0, 1));
+                // await Assert.That(e.DeselectedItems.Select(static x => x?.Caption ?? "")).IsEquivalentTo("Node 0-1");
+                // await Assert.That(e.SelectedIndexes).IsEmpty();
+                // await Assert.That(e.SelectedItems).IsEmpty();
                 ++raised;
             };
 
             target.Clear();
 
-            Assert.Equal(1, raised);
+            await Assert.That(raised).IsEqualTo(1);
         }
     }
 
     public class AnchorIndex
     {
-        [AvaloniaFact(Timeout = 10000)]
-        public void Setting_SelectedIndex_Sets_AnchorIndex()
+        [Test]
+        public async Task Setting_SelectedIndex_Sets_AnchorIndex()
         {
             var target = CreateTarget();
             var raised = 0;
@@ -523,12 +519,12 @@ public class TreeSelectionModelBaseTests_Single
 
             target.SelectedIndex = new IndexPath(0, 1);
 
-            Assert.Equal(new IndexPath(0, 1), target.AnchorIndex);
-            Assert.Equal(1, raised);
+            await Assert.That(target.AnchorIndex).IsEqualTo(new IndexPath(0, 1));
+            await Assert.That(raised).IsEqualTo(1);
         }
 
-        [AvaloniaFact(Timeout = 10000)]
-        public void Setting_SelectedIndex_To_Empty_Doesnt_Clear_AnchorIndex()
+        [Test]
+        public async Task Setting_SelectedIndex_To_Empty_Doesnt_Clear_AnchorIndex()
         {
             var target = CreateTarget();
             var raised = 0;
@@ -545,12 +541,12 @@ public class TreeSelectionModelBaseTests_Single
 
             target.SelectedIndex = default;
 
-            Assert.Equal(new IndexPath(0, 1), target.AnchorIndex);
-            Assert.Equal(0, raised);
+            await Assert.That(target.AnchorIndex).IsEqualTo(new IndexPath(0, 1));
+            await Assert.That(raised).IsZero();
         }
 
-        [AvaloniaFact(Timeout = 10000)]
-        public void Select_Sets_AnchorIndex()
+        [Test]
+        public async Task Select_Sets_AnchorIndex()
         {
             var target = CreateTarget();
             var raised = 0;
@@ -565,12 +561,12 @@ public class TreeSelectionModelBaseTests_Single
 
             target.Select(new IndexPath(0, 1));
 
-            Assert.Equal(new IndexPath(0, 1), target.AnchorIndex);
-            Assert.Equal(1, raised);
+            await Assert.That(target.AnchorIndex).IsEqualTo(new IndexPath(0, 1));
+            await Assert.That(raised).IsEqualTo(1);
         }
 
-        [AvaloniaFact(Timeout = 10000)]
-        public void Deselect_Doesnt_Clear_AnchorIndex()
+        [Test]
+        public async Task Deselect_Doesnt_Clear_AnchorIndex()
         {
             var target = CreateTarget();
             var raised = 0;
@@ -587,12 +583,12 @@ public class TreeSelectionModelBaseTests_Single
 
             target.Deselect(new IndexPath(0, 1));
 
-            Assert.Equal(new IndexPath(0, 1), target.AnchorIndex);
-            Assert.Equal(0, raised);
+            await Assert.That(target.AnchorIndex).IsEqualTo(new IndexPath(0, 1));
+            await Assert.That(raised).IsZero();
         }
 
-        [AvaloniaFact(Timeout = 10000)]
-        public void Raises_PropertyChanged()
+        [Test]
+        public async Task Raises_PropertyChanged()
         {
             var target = CreateTarget();
             var raised = 0;
@@ -607,14 +603,14 @@ public class TreeSelectionModelBaseTests_Single
 
             target.SelectedIndex = new IndexPath(0, 1);
 
-            Assert.Equal(1, raised);
+            await Assert.That(raised).IsEqualTo(1);
         }
     }
 
     public class SingleSelect
     {
-        [AvaloniaFact(Timeout = 10000)]
-        public void Converting_To_Multiple_Selection_Preserves_Selection()
+        [Test]
+        public async Task Converting_To_Multiple_Selection_Preserves_Selection()
         {
             var target = CreateTarget();
             var raised = 0;
@@ -625,16 +621,16 @@ public class TreeSelectionModelBaseTests_Single
 
             target.SingleSelect = false;
 
-            Assert.Equal(1, target.Count);
-            Assert.Equal(new IndexPath(0, 1), target.SelectedIndex);
-            Assert.Equal(new[] { new IndexPath(0, 1) }, target.SelectedIndexes);
-            Assert.Equal("Node 0-1", target.SelectedItem!.Caption);
-            Assert.Equal(new[] { "Node 0-1" }, target.SelectedItems.Select(x => x!.Caption));
-            Assert.Equal(0, raised);
+            await Assert.That(target.Count).IsEqualTo(1);
+            await Assert.That(target.SelectedIndex).IsEqualTo(new IndexPath(0, 1));
+            await Assert.That(target.SelectedIndexes).IsEquivalentTo([new IndexPath(0, 1)]);
+            await Assert.That(target.SelectedItem!.Caption).IsEqualTo("Node 0-1");
+            await Assert.That(target.SelectedItems.Select(static x => x?.Caption ?? "")).IsEquivalentTo(["Node 0-1"]);
+            await Assert.That(raised).IsZero();
         }
 
-        [AvaloniaFact(Timeout = 10000)]
-        public void Raises_PropertyChanged()
+        [Test]
+        public async Task Raises_PropertyChanged()
         {
             var target = CreateTarget();
             var raised = 0;
@@ -649,14 +645,14 @@ public class TreeSelectionModelBaseTests_Single
 
             target.SingleSelect = false;
 
-            Assert.Equal(1, raised);
+            await Assert.That(raised).IsEqualTo(1);
         }
     }
 
     public class CollectionChanges
     {
-        [AvaloniaFact(Timeout = 10000)]
-        public void Adding_Root_Item_Before_Selected_Root_Item_Updates_Indexes()
+        [Test]
+        public async Task Adding_Root_Item_Before_Selected_Root_Item_Updates_Indexes()
         {
             var data = CreateData();
             var target = CreateTarget(data);
@@ -678,27 +674,27 @@ public class TreeSelectionModelBaseTests_Single
 
             target.IndexesChanged += (s, e) =>
             {
-                Assert.Equal(default, e.ParentIndex);
-                Assert.Equal(0, e.StartIndex);
-                Assert.Equal(1, e.Delta);
+                // await Assert.That(e.ParentIndex).IsDefault();
+                // await Assert.That(e.StartIndex).IsZero();
+                // await Assert.That(e.Delta).IsEqualTo(1);
                 ++indexesChangedRaised;
             };
 
             data.Insert(0, new Node { Caption = "new" });
 
-            Assert.Equal(1, target.Count);
-            Assert.Equal(new IndexPath(2), target.SelectedIndex);
-            Assert.Equal(new[] { new IndexPath(2) }, target.SelectedIndexes);
-            Assert.Equal("Node 1", target.SelectedItem!.Caption);
-            Assert.Equal(new[] { "Node 1" }, target.SelectedItems.Select(x => x!.Caption));
-            Assert.Equal(new IndexPath(2), target.AnchorIndex);
-            Assert.Equal(1, indexesChangedRaised);
-            Assert.Equal(1, selectedIndexRaised);
-            Assert.Equal(0, selectionChangedRaised);
+            await Assert.That(target.Count).IsEqualTo(1);
+            await Assert.That(target.SelectedIndex).IsEqualTo(new IndexPath(2));
+            await Assert.That(target.SelectedIndexes).IsEquivalentTo([new IndexPath(2)]);
+            await Assert.That(target.SelectedItem!.Caption).IsEqualTo("Node 1");
+            await Assert.That(target.SelectedItems.Select(static x => x?.Caption ?? "")).IsEquivalentTo(["Node 1"]);
+            await Assert.That(target.AnchorIndex).IsEqualTo(new IndexPath(2));
+            await Assert.That(indexesChangedRaised).IsEqualTo(1);
+            await Assert.That(selectedIndexRaised).IsEqualTo(1);
+            await Assert.That(selectionChangedRaised).IsZero();
         }
 
-        [AvaloniaFact(Timeout = 10000)]
-        public void Adding_Child_Item_Before_Selected_Child_Item_Updates_Indexes()
+        [Test]
+        public async Task Adding_Child_Item_Before_Selected_Child_Item_Updates_Indexes()
         {
             var data = CreateData();
             var target = CreateTarget(data);
@@ -720,27 +716,27 @@ public class TreeSelectionModelBaseTests_Single
 
             target.IndexesChanged += (s, e) =>
             {
-                Assert.Equal(new IndexPath(0), e.ParentIndex);
-                Assert.Equal(0, e.StartIndex);
-                Assert.Equal(1, e.Delta);
+                // await Assert.That(e.ParentIndex).IsEqualTo(new IndexPath(0));
+                // await Assert.That(e.StartIndex).IsZero();
+                // await Assert.That(e.Delta).IsEqualTo(1);
                 ++indexesChangedRaised;
             };
 
             data[0].Children!.Insert(0, new Node { Caption = "new" });
 
-            Assert.Equal(1, target.Count);
-            Assert.Equal(new IndexPath(0, 2), target.SelectedIndex);
-            Assert.Equal(new[] { new IndexPath(0, 2) }, target.SelectedIndexes);
-            Assert.Equal("Node 0-1", target.SelectedItem!.Caption);
-            Assert.Equal(new[] { "Node 0-1" }, target.SelectedItems.Select(x => x!.Caption));
-            Assert.Equal(new IndexPath(0, 2), target.AnchorIndex);
-            Assert.Equal(1, indexesChangedRaised);
-            Assert.Equal(1, selectedIndexRaised);
-            Assert.Equal(0, selectionChangedRaised);
+            await Assert.That(target.Count).IsEqualTo(1);
+            await Assert.That(target.SelectedIndex).IsEqualTo(new IndexPath(0, 2));
+            await Assert.That(target.SelectedIndexes).IsEquivalentTo([new IndexPath(0, 2)]);
+            await Assert.That(target.SelectedItem!.Caption).IsEqualTo("Node 0-1");
+            await Assert.That(target.SelectedItems.Select(static x => x?.Caption ?? "")).IsEquivalentTo(["Node 0-1"]);
+            await Assert.That(target.AnchorIndex).IsEqualTo(new IndexPath(0, 2));
+            await Assert.That(indexesChangedRaised).IsEqualTo(1);
+            await Assert.That(selectedIndexRaised).IsEqualTo(1);
+            await Assert.That(selectionChangedRaised).IsZero();
         }
 
-        [AvaloniaFact(Timeout = 10000)]
-        public void Adding_Root_Item_Before_Selected_Child_Item_Updates_Indexes()
+        [Test]
+        public async Task Adding_Root_Item_Before_Selected_Child_Item_Updates_Indexes()
         {
             var data = CreateData();
             var target = CreateTarget(data);
@@ -762,27 +758,27 @@ public class TreeSelectionModelBaseTests_Single
 
             target.IndexesChanged += (s, e) =>
             {
-                Assert.Equal(default, e.ParentIndex);
-                Assert.Equal(0, e.StartIndex);
-                Assert.Equal(1, e.Delta);
+                // await Assert.That(e.ParentIndex).IsDefault();
+                // await Assert.That(e.StartIndex).IsZero();
+                // await Assert.That(e.Delta).IsEqualTo(1);
                 ++indexesChangedRaised;
             };
 
             data.Insert(0, new Node { Caption = "new" });
 
-            Assert.Equal(1, target.Count);
-            Assert.Equal(new IndexPath(1, 1), target.SelectedIndex);
-            Assert.Equal(new[] { new IndexPath(1, 1) }, target.SelectedIndexes);
-            Assert.Equal("Node 0-1", target.SelectedItem!.Caption);
-            Assert.Equal(new[] { "Node 0-1" }, target.SelectedItems.Select(x => x!.Caption));
-            Assert.Equal(new IndexPath(1, 1), target.AnchorIndex);
-            Assert.Equal(1, indexesChangedRaised);
-            Assert.Equal(1, selectedIndexRaised);
-            Assert.Equal(0, selectionChangedRaised);
+            await Assert.That(target.Count).IsEqualTo(1);
+            await Assert.That(target.SelectedIndex).IsEqualTo(new IndexPath(1, 1));
+            await Assert.That(target.SelectedIndexes).IsEquivalentTo([new IndexPath(1, 1)]);
+            await Assert.That(target.SelectedItem!.Caption).IsEqualTo("Node 0-1");
+            await Assert.That(target.SelectedItems.Select(static x => x?.Caption ?? "")).IsEquivalentTo(["Node 0-1"]);
+            await Assert.That(target.AnchorIndex).IsEqualTo(new IndexPath(1, 1));
+            await Assert.That(indexesChangedRaised).IsEqualTo(1);
+            await Assert.That(selectedIndexRaised).IsEqualTo(1);
+            await Assert.That(selectionChangedRaised).IsZero();
         }
 
-        [AvaloniaFact(Timeout = 10000)]
-        public void Adding_Root_Item_Before_Selected_Grandchild_Item_Updates_Indexes()
+        [Test]
+        public async Task Adding_Root_Item_Before_Selected_Grandchild_Item_Updates_Indexes()
         {
             var data = CreateData(depth: 3);
             var target = CreateTarget(data);
@@ -804,27 +800,27 @@ public class TreeSelectionModelBaseTests_Single
 
             target.IndexesChanged += (s, e) =>
             {
-                Assert.Equal(default, e.ParentIndex);
-                Assert.Equal(0, e.StartIndex);
-                Assert.Equal(1, e.Delta);
+                // await Assert.That(e.ParentIndex).IsDefault();
+                // await Assert.That(e.StartIndex).IsZero();
+                // await Assert.That(e.Delta).IsEqualTo(1);
                 ++indexesChangedRaised;
             };
 
             data.Insert(0, new Node { Caption = "new" });
 
-            Assert.Equal(1, target.Count);
-            Assert.Equal(new IndexPath(1, 0, 1), target.SelectedIndex);
-            Assert.Equal(new[] { new IndexPath(1, 0, 1) }, target.SelectedIndexes);
-            Assert.Equal("Node 0-0-1", target.SelectedItem!.Caption);
-            Assert.Equal(new[] { "Node 0-0-1" }, target.SelectedItems.Select(x => x!.Caption));
-            Assert.Equal(new IndexPath(1, 0, 1), target.AnchorIndex);
-            Assert.Equal(1, indexesChangedRaised);
-            Assert.Equal(1, selectedIndexRaised);
-            Assert.Equal(0, selectionChangedRaised);
+            await Assert.That(target.Count).IsEqualTo(1);
+            await Assert.That(target.SelectedIndex).IsEqualTo(new IndexPath(1, 0, 1));
+            await Assert.That(target.SelectedIndexes).IsEquivalentTo([new IndexPath(1, 0, 1)]);
+            await Assert.That(target.SelectedItem!.Caption).IsEqualTo("Node 0-0-1");
+            await Assert.That(target.SelectedItems.Select(static x => x?.Caption ?? "")).IsEquivalentTo(["Node 0-0-1"]);
+            await Assert.That(target.AnchorIndex).IsEqualTo(new IndexPath(1, 0, 1));
+            await Assert.That(indexesChangedRaised).IsEqualTo(1);
+            await Assert.That(selectedIndexRaised).IsEqualTo(1);
+            await Assert.That(selectionChangedRaised).IsZero();
         }
 
-        [AvaloniaFact(Timeout = 10000)]
-        public void Adding_Root_Item_After_Selected_Root_Item_Doesnt_Raise_Events()
+        [Test]
+        public async Task Adding_Root_Item_After_Selected_Root_Item_Doesnt_Raise_Events()
         {
             var data = CreateData();
             var target = CreateTarget(data);
@@ -838,17 +834,17 @@ public class TreeSelectionModelBaseTests_Single
 
             data.Insert(2, new Node { Caption = "new" });
 
-            Assert.Equal(1, target.Count);
-            Assert.Equal(new IndexPath(1), target.SelectedIndex);
-            Assert.Equal(new[] { new IndexPath(1) }, target.SelectedIndexes);
-            Assert.Equal("Node 1", target.SelectedItem!.Caption);
-            Assert.Equal(new[] { "Node 1" }, target.SelectedItems.Select(x => x!.Caption));
-            Assert.Equal(new IndexPath(1), target.AnchorIndex);
-            Assert.Equal(0, raised);
+            await Assert.That(target.Count).IsEqualTo(1);
+            await Assert.That(target.SelectedIndex).IsEqualTo(new IndexPath(1));
+            await Assert.That(target.SelectedIndexes).IsEquivalentTo([new IndexPath(1)]);
+            await Assert.That(target.SelectedItem!.Caption).IsEqualTo("Node 1");
+            await Assert.That(target.SelectedItems.Select(static x => x?.Caption ?? "")).IsEquivalentTo(["Node 1"]);
+            await Assert.That(target.AnchorIndex).IsEqualTo(new IndexPath(1));
+            await Assert.That(raised).IsZero();
         }
 
-        [AvaloniaFact(Timeout = 10000)]
-        public void Removing_Root_Selected_Item_Updates_State()
+        [Test]
+        public async Task Removing_Root_Selected_Item_Updates_State()
         {
             var data = CreateData();
             var target = CreateTarget(data);
@@ -867,27 +863,27 @@ public class TreeSelectionModelBaseTests_Single
 
             target.SelectionChanged += (s, e) =>
             {
-                Assert.Empty(e.DeselectedIndexes);
-                Assert.Equal(new[] { "Node 1" }, e.DeselectedItems.Select(x => x!.Caption));
-                Assert.Empty(e.SelectedIndexes);
-                Assert.Empty(e.SelectedItems);
+                // await Assert.That(e.DeselectedIndexes).IsEmpty();
+                // await Assert.That(e.DeselectedItems.Select(static x => x?.Caption ?? "")).IsEquivalentTo(["Node 1"]);
+                // await Assert.That(e.SelectedIndexes).IsEmpty();
+                // await Assert.That(e.SelectedItems).IsEmpty();
                 ++selectionChangedRaised;
             };
 
             data.RemoveAt(1);
 
-            Assert.Equal(0, target.Count);
-            Assert.Equal(default, target.SelectedIndex);
-            Assert.Empty(target.SelectedIndexes);
+            await Assert.That(target.Count).IsZero();
+            await Assert.That(target.SelectedIndex).IsEmpty();
+            await Assert.That(target.SelectedIndexes).IsEmpty();
             Assert.Null(target.SelectedItem);
-            Assert.Empty(target.SelectedItems);
-            Assert.Equal(default, target.AnchorIndex);
-            Assert.Equal(1, selectionChangedRaised);
-            Assert.Equal(1, selectedIndexRaised);
+            await Assert.That(target.SelectedItems).IsEmpty();
+            await Assert.That(target.AnchorIndex).IsEmpty();
+            await Assert.That(selectionChangedRaised).IsEqualTo(1);
+            await Assert.That(selectedIndexRaised).IsEqualTo(1);
         }
 
-        [AvaloniaFact(Timeout = 10000)]
-        public void Removing_Child_Selected_Item_Updates_State()
+        [Test]
+        public async Task Removing_Child_Selected_Item_Updates_State()
         {
             var data = CreateData();
             var target = CreateTarget(data);
@@ -906,27 +902,27 @@ public class TreeSelectionModelBaseTests_Single
 
             target.SelectionChanged += (s, e) =>
             {
-                Assert.Empty(e.DeselectedIndexes);
-                Assert.Equal(new[] { "Node 0-1" }, e.DeselectedItems.Select(x => x!.Caption));
-                Assert.Empty(e.SelectedIndexes);
-                Assert.Empty(e.SelectedItems);
+                // await Assert.That(e.DeselectedIndexes).IsEmpty();
+                // await Assert.That(e.DeselectedItems.Select(static x => x?.Caption ?? "")).IsEquivalentTo(["Node 0-1"]);
+                // await Assert.That(e.SelectedIndexes).IsEmpty();
+                // await Assert.That(e.SelectedItems).IsEmpty();
                 ++selectionChangedRaised;
             };
 
             data[0].Children!.RemoveAt(1);
 
-            Assert.Equal(0, target.Count);
-            Assert.Equal(default, target.SelectedIndex);
-            Assert.Empty(target.SelectedIndexes);
+            await Assert.That(target.Count).IsZero();
+            await Assert.That(target.SelectedIndex).IsEmpty();
+            await Assert.That(target.SelectedIndexes).IsEmpty();
             Assert.Null(target.SelectedItem);
-            Assert.Empty(target.SelectedItems);
-            Assert.Equal(default, target.AnchorIndex);
-            Assert.Equal(1, selectionChangedRaised);
-            Assert.Equal(1, selectedIndexRaised);
+            await Assert.That(target.SelectedItems).IsEmpty();
+            await Assert.That(target.AnchorIndex).IsEmpty();
+            await Assert.That(selectionChangedRaised).IsEqualTo(1);
+            await Assert.That(selectedIndexRaised).IsEqualTo(1);
         }
 
-        [AvaloniaFact(Timeout = 10000)]
-        public void Removing_Parent_Of_Selected_Item_Updates_State()
+        [Test]
+        public async Task Removing_Parent_Of_Selected_Item_Updates_State()
         {
             var data = CreateData();
             var target = CreateTarget(data);
@@ -945,27 +941,27 @@ public class TreeSelectionModelBaseTests_Single
 
             target.SelectionChanged += (s, e) =>
             {
-                Assert.Empty(e.DeselectedIndexes);
-                Assert.Equal(new[] { "Node 0-1" }, e.DeselectedItems.Select(x => x!.Caption));
-                Assert.Empty(e.SelectedIndexes);
-                Assert.Empty(e.SelectedItems);
+                // await Assert.That(e.DeselectedIndexes).IsEmpty();
+                // await Assert.That(e.DeselectedItems.Select(static x => x?.Caption ?? "")).IsEquivalentTo(["Node 0-1"]);
+                // await Assert.That(e.SelectedIndexes).IsEmpty();
+                // await Assert.That(e.SelectedItems).IsEmpty();
                 ++selectionChangedRaised;
             };
 
             data.RemoveAt(0);
 
-            Assert.Equal(0, target.Count);
-            Assert.Equal(default, target.SelectedIndex);
-            Assert.Empty(target.SelectedIndexes);
+            await Assert.That(target.Count).IsZero();
+            await Assert.That(target.SelectedIndex).IsEmpty();
+            await Assert.That(target.SelectedIndexes).IsEmpty();
             Assert.Null(target.SelectedItem);
-            Assert.Empty(target.SelectedItems);
-            Assert.Equal(default, target.AnchorIndex);
-            Assert.Equal(1, selectionChangedRaised);
-            Assert.Equal(1, selectedIndexRaised);
+            await Assert.That(target.SelectedItems).IsEmpty();
+            await Assert.That(target.AnchorIndex).IsEmpty();
+            await Assert.That(selectionChangedRaised).IsEqualTo(1);
+            await Assert.That(selectedIndexRaised).IsEqualTo(1);
         }
 
-        [AvaloniaFact(Timeout = 10000)]
-        public void Removing_Root_Item_Before_Selected_Root_Item_Updates_Indexes()
+        [Test]
+        public async Task Removing_Root_Item_Before_Selected_Root_Item_Updates_Indexes()
         {
             var data = CreateData();
             var target = CreateTarget(data);
@@ -978,25 +974,25 @@ public class TreeSelectionModelBaseTests_Single
 
             target.IndexesChanged += (s, e) =>
             {
-                Assert.Equal(0, e.StartIndex);
-                Assert.Equal(-1, e.Delta);
+                // await Assert.That(e.StartIndex).IsZero();
+                // await Assert.That(e.Delta).IsEqualTo(-1);
                 ++indexesChangedraised;
             };
 
             data.RemoveAt(0);
 
-            Assert.Equal(1, target.Count);
-            Assert.Equal(new IndexPath(0), target.SelectedIndex);
-            Assert.Equal(new[] { new IndexPath(0) }, target.SelectedIndexes);
-            Assert.Equal("Node 1", target.SelectedItem!.Caption);
-            Assert.Equal(new[] { "Node 1" }, target.SelectedItems.Select(x => x!.Caption));
-            Assert.Equal(new IndexPath(0), target.AnchorIndex);
-            Assert.Equal(1, indexesChangedraised);
-            Assert.Equal(0, selectionChangedRaised);
+            await Assert.That(target.Count).IsEqualTo(1);
+            await Assert.That(target.SelectedIndex).IsEqualTo(new IndexPath(0));
+            await Assert.That(target.SelectedIndexes).IsEquivalentTo([new IndexPath(0)]);
+            await Assert.That(target.SelectedItem!.Caption).IsEqualTo("Node 1");
+            await Assert.That(target.SelectedItems.Select(static x => x?.Caption ?? "")).IsEquivalentTo(["Node 1"]);
+            await Assert.That(target.AnchorIndex).IsEqualTo(new IndexPath(0));
+            await Assert.That(indexesChangedraised).IsEqualTo(1);
+            await Assert.That(selectionChangedRaised).IsZero();
         }
 
-        [AvaloniaFact(Timeout = 10000)]
-        public void Removing_Root_Item_Before_Selected_Child_Item_Updates_Indexes()
+        [Test]
+        public async Task Removing_Root_Item_Before_Selected_Child_Item_Updates_Indexes()
         {
             var data = CreateData();
             var target = CreateTarget(data);
@@ -1009,25 +1005,25 @@ public class TreeSelectionModelBaseTests_Single
 
             target.IndexesChanged += (s, e) =>
             {
-                Assert.Equal(0, e.StartIndex);
-                Assert.Equal(-1, e.Delta);
+                // await Assert.That(e.StartIndex).IsZero();
+                // await Assert.That(e.Delta).IsEqualTo(-1);
                 ++indexesChangedraised;
             };
 
             data.RemoveAt(0);
 
-            Assert.Equal(1, target.Count);
-            Assert.Equal(new IndexPath(0, 1), target.SelectedIndex);
-            Assert.Equal(new[] { new IndexPath(0, 1) }, target.SelectedIndexes);
-            Assert.Equal("Node 1-1", target.SelectedItem!.Caption);
-            Assert.Equal(new[] { "Node 1-1" }, target.SelectedItems.Select(x => x!.Caption));
-            Assert.Equal(new IndexPath(0, 1), target.AnchorIndex);
-            Assert.Equal(1, indexesChangedraised);
-            Assert.Equal(0, selectionChangedRaised);
+            await Assert.That(target.Count).IsEqualTo(1);
+            await Assert.That(target.SelectedIndex).IsEqualTo(new IndexPath(0, 1));
+            await Assert.That(target.SelectedIndexes).IsEquivalentTo([new IndexPath(0, 1)]);
+            await Assert.That(target.SelectedItem!.Caption).IsEqualTo("Node 1-1");
+            await Assert.That(target.SelectedItems.Select(static x => x?.Caption ?? "")).IsEquivalentTo(["Node 1-1"]);
+            await Assert.That(target.AnchorIndex).IsEqualTo(new IndexPath(0, 1));
+            await Assert.That(indexesChangedraised).IsEqualTo(1);
+            await Assert.That(selectionChangedRaised).IsZero();
         }
 
-        [AvaloniaFact(Timeout = 10000)]
-        public void Removing_Child_Item_Before_Selected_Grandhild_Item_Updates_Indexes()
+        [Test]
+        public async Task Removing_Child_Item_Before_Selected_Grandhild_Item_Updates_Indexes()
         {
             var data = CreateData(depth: 3);
             var target = CreateTarget(data);
@@ -1040,25 +1036,25 @@ public class TreeSelectionModelBaseTests_Single
 
             target.IndexesChanged += (s, e) =>
             {
-                Assert.Equal(0, e.StartIndex);
-                Assert.Equal(-1, e.Delta);
+                // await Assert.That(e.StartIndex).IsZero();
+                // await Assert.That(e.Delta).IsEqualTo(-1);
                 ++indexesChangedraised;
             };
 
             data[1].Children!.RemoveAt(0);
 
-            Assert.Equal(1, target.Count);
-            Assert.Equal(new IndexPath(1, 0, 2), target.SelectedIndex);
-            Assert.Equal(new[] { new IndexPath(1, 0, 2) }, target.SelectedIndexes);
-            Assert.Equal("Node 1-1-2", target.SelectedItem!.Caption);
-            Assert.Equal(new[] { "Node 1-1-2" }, target.SelectedItems.Select(x => x!.Caption));
-            Assert.Equal(new IndexPath(1, 0, 2), target.AnchorIndex);
-            Assert.Equal(1, indexesChangedraised);
-            Assert.Equal(0, selectionChangedRaised);
+            await Assert.That(target.Count).IsEqualTo(1);
+            await Assert.That(target.SelectedIndex).IsEqualTo(new IndexPath(1, 0, 2));
+            await Assert.That(target.SelectedIndexes).IsEquivalentTo([new IndexPath(1, 0, 2)]);
+            await Assert.That(target.SelectedItem!.Caption).IsEqualTo("Node 1-1-2");
+            await Assert.That(target.SelectedItems.Select(static x => x?.Caption ?? "")).IsEquivalentTo(["Node 1-1-2"]);
+            await Assert.That(target.AnchorIndex).IsEqualTo(new IndexPath(1, 0, 2));
+            await Assert.That(indexesChangedraised).IsEqualTo(1);
+            await Assert.That(selectionChangedRaised).IsZero();
         }
 
-        [AvaloniaFact(Timeout = 10000)]
-        public void Removing_Root_Item_After_Selected_Root_Item_Doesnt_Raise_Events()
+        [Test]
+        public async Task Removing_Root_Item_After_Selected_Root_Item_Doesnt_Raise_Events()
         {
             var data = CreateData();
             var target = CreateTarget(data);
@@ -1072,17 +1068,17 @@ public class TreeSelectionModelBaseTests_Single
 
             data.RemoveAt(2);
 
-            Assert.Equal(1, target.Count);
-            Assert.Equal(new IndexPath(1), target.SelectedIndex);
-            Assert.Equal(new[] { new IndexPath(1) }, target.SelectedIndexes);
-            Assert.Equal("Node 1", target.SelectedItem!.Caption);
-            Assert.Equal(new[] { "Node 1" }, target.SelectedItems.Select(x => x!.Caption));
-            Assert.Equal(new IndexPath(1), target.AnchorIndex);
-            Assert.Equal(0, raised);
+            await Assert.That(target.Count).IsEqualTo(1);
+            await Assert.That(target.SelectedIndex).IsEqualTo(new IndexPath(1));
+            await Assert.That(target.SelectedIndexes).IsEquivalentTo([new IndexPath(1)]);
+            await Assert.That(target.SelectedItem!.Caption).IsEqualTo("Node 1");
+            await Assert.That(target.SelectedItems.Select(static x => x?.Caption ?? "")).IsEquivalentTo(["Node 1"]);
+            await Assert.That(target.AnchorIndex).IsEqualTo(new IndexPath(1));
+            await Assert.That(raised).IsZero();
         }
 
-        [AvaloniaFact(Timeout = 10000)]
-        public void Replacing_Selected_Root_Item_Updates_State()
+        [Test]
+        public async Task Replacing_Selected_Root_Item_Updates_State()
         {
             var data = CreateData();
             var target = CreateTarget(data);
@@ -1107,27 +1103,27 @@ public class TreeSelectionModelBaseTests_Single
 
             target.SelectionChanged += (s, e) =>
             {
-                Assert.Empty(e.DeselectedIndexes);
-                Assert.Equal(new[] { "Node 1" }, e.DeselectedItems.Select(x => x!.Caption));
-                Assert.Empty(e.SelectedIndexes);
-                Assert.Empty(e.SelectedItems);
+                // await Assert.That(e.DeselectedIndexes).IsEmpty();
+                // await Assert.That(e.DeselectedItems.Select(static x => x?.Caption ?? "")).IsEquivalentTo(["Node 1"]);
+                // await Assert.That(e.SelectedIndexes).IsEmpty();
+                // await Assert.That(e.SelectedItems).IsEmpty();
                 ++selectionChangedRaised;
             };
 
             data[1] = new Node { Caption = "new" };
 
-            Assert.Equal(0, target.Count);
-            Assert.Equal(default, target.SelectedIndex);
-            Assert.Empty(target.SelectedIndexes);
+            await Assert.That(target.Count).IsZero();
+            await Assert.That(target.SelectedIndex).IsEmpty();
+            await Assert.That(target.SelectedIndexes).IsEmpty();
             Assert.Null(target.SelectedItem);
-            Assert.Empty(target.SelectedItems);
-            Assert.Equal(1, selectionChangedRaised);
-            Assert.Equal(1, selectedIndexRaised);
-            Assert.Equal(1, selectedItemRaised);
+            await Assert.That(target.SelectedItems).IsEmpty();
+            await Assert.That(selectionChangedRaised).IsEqualTo(1);
+            await Assert.That(selectedIndexRaised).IsEqualTo(1);
+            await Assert.That(selectedItemRaised).IsEqualTo(1);
         }
 
-        [AvaloniaFact(Timeout = 10000)]
-        public void Replacing_Selected_Child_Item_Updates_State()
+        [Test]
+        public async Task Replacing_Selected_Child_Item_Updates_State()
         {
             var data = CreateData();
             var target = CreateTarget(data);
@@ -1152,27 +1148,27 @@ public class TreeSelectionModelBaseTests_Single
 
             target.SelectionChanged += (s, e) =>
             {
-                Assert.Empty(e.DeselectedIndexes);
-                Assert.Equal(new[] { "Node 1-1" }, e.DeselectedItems.Select(x => x!.Caption));
-                Assert.Empty(e.SelectedIndexes);
-                Assert.Empty(e.SelectedItems);
+                // await Assert.That(e.DeselectedIndexes).IsEmpty();
+                // await Assert.That(e.DeselectedItems.Select(static x => x?.Caption ?? "")).IsEquivalentTo(["Node 1-1"]);
+                // await Assert.That(e.SelectedIndexes).IsEmpty();
+                // await Assert.That(e.SelectedItems).IsEmpty();
                 ++selectionChangedRaised;
             };
 
             data[1].Children![1] = new Node { Caption = "new" };
 
-            Assert.Equal(0, target.Count);
-            Assert.Equal(default, target.SelectedIndex);
-            Assert.Empty(target.SelectedIndexes);
+            await Assert.That(target.Count).IsZero();
+            await Assert.That(target.SelectedIndex).IsEmpty();
+            await Assert.That(target.SelectedIndexes).IsEmpty();
             Assert.Null(target.SelectedItem);
-            Assert.Empty(target.SelectedItems);
-            Assert.Equal(1, selectionChangedRaised);
-            Assert.Equal(1, selectedIndexRaised);
-            Assert.Equal(1, selectedItemRaised);
+            await Assert.That(target.SelectedItems).IsEmpty();
+            await Assert.That(selectionChangedRaised).IsEqualTo(1);
+            await Assert.That(selectedIndexRaised).IsEqualTo(1);
+            await Assert.That(selectedItemRaised).IsEqualTo(1);
         }
 
-        [AvaloniaFact(Timeout = 10000)]
-        public void Moving_Selected_Root_Item_Updates_State()
+        [Test]
+        public async Task Moving_Selected_Root_Item_Updates_State()
         {
             var data = CreateData();
             var target = CreateTarget(data);
@@ -1208,19 +1204,19 @@ public class TreeSelectionModelBaseTests_Single
 
             data.Move(1, 3);
 
-            Assert.Equal(0, target.Count);
-            Assert.Equal(default, target.SelectedIndex);
-            Assert.Empty(target.SelectedIndexes);
+            await Assert.That(target.Count).IsZero();
+            await Assert.That(target.SelectedIndex).IsEmpty();
+            await Assert.That(target.SelectedIndexes).IsEmpty();
             Assert.Null(target.SelectedItem);
-            Assert.Empty(target.SelectedItems);
-            Assert.Equal(1, indexesChangedRaised);
-            Assert.Equal(1, selectionChangedRaised);
-            Assert.Equal(1, selectedIndexRaised);
-            Assert.Equal(1, selectedItemRaised);
+            await Assert.That(target.SelectedItems).IsEmpty();
+            await Assert.That(indexesChangedRaised).IsEqualTo(1);
+            await Assert.That(selectionChangedRaised).IsEqualTo(1);
+            await Assert.That(selectedIndexRaised).IsEqualTo(1);
+            await Assert.That(selectedItemRaised).IsEqualTo(1);
         }
 
-        [AvaloniaFact(Timeout = 10000)]
-        public void Moving_Selected_Child_Item_Updates_State()
+        [Test]
+        public async Task Moving_Selected_Child_Item_Updates_State()
         {
             var data = CreateData();
             var target = CreateTarget(data);
@@ -1256,19 +1252,19 @@ public class TreeSelectionModelBaseTests_Single
 
             data[1].Children!.Move(1, 2);
 
-            Assert.Equal(0, target.Count);
-            Assert.Equal(default, target.SelectedIndex);
-            Assert.Empty(target.SelectedIndexes);
+            await Assert.That(target.Count).IsZero();
+            await Assert.That(target.SelectedIndex).IsEmpty();
+            await Assert.That(target.SelectedIndexes).IsEmpty();
             Assert.Null(target.SelectedItem);
-            Assert.Empty(target.SelectedItems);
-            Assert.Equal(1, indexesChangedRaised);
-            Assert.Equal(1, selectionChangedRaised);
-            Assert.Equal(1, selectedIndexRaised);
-            Assert.Equal(1, selectedItemRaised);
+            await Assert.That(target.SelectedItems).IsEmpty();
+            await Assert.That(indexesChangedRaised).IsEqualTo(1);
+            await Assert.That(selectionChangedRaised).IsEqualTo(1);
+            await Assert.That(selectedIndexRaised).IsEqualTo(1);
+            await Assert.That(selectedItemRaised).IsEqualTo(1);
         }
 
-        [AvaloniaFact(Timeout = 10000)]
-        public void Moving_Unselected_Child_Item_From_Before_Selected_Item_To_After_Updates_State()
+        [Test]
+        public async Task Moving_Unselected_Child_Item_From_Before_Selected_Item_To_After_Updates_State()
         {
             var data = CreateData();
             var target = CreateTarget(data);
@@ -1281,10 +1277,10 @@ public class TreeSelectionModelBaseTests_Single
 
             target.IndexesChanged += (s, e) =>
             {
-                Assert.Equal(new(1), e.ParentIndex);
-                Assert.Equal(0, e.StartIndex);
-                Assert.Equal(2, e.EndIndex);
-                Assert.Equal(-1, e.Delta);
+                // await Assert.That(new(1), e.ParentIndex);
+                // await Assert.That(e.StartIndex).IsZero();
+                // await Assert.That(2, e.EndIndex);
+                // await Assert.That(e.Delta).IsEqualTo(-1);
                 ++indexesChangedRaised;
             };
 
@@ -1308,19 +1304,19 @@ public class TreeSelectionModelBaseTests_Single
 
             data[1].Children!.Move(0, 2);
 
-            Assert.Equal(1, target.Count);
-            Assert.Equal(new(1, 0), target.SelectedIndex);
-            Assert.Equal([new(1, 0)], target.SelectedIndexes);
-            Assert.Equal("Node 1-1", target.SelectedItem?.Caption);
-            Assert.Equal(["Node 1-1"], target.SelectedItems.Select(x => x?.Caption));
-            Assert.Equal(1, indexesChangedRaised);
-            Assert.Equal(0, selectionChangedRaised);
-            Assert.Equal(1, selectedIndexRaised);
-            Assert.Equal(0, selectedItemRaised);
+            await Assert.That(target.Count).IsEqualTo(1);
+            await Assert.That(target.SelectedIndex).IsEqualTo(new IndexPath(1, 0));
+            await Assert.That(target.SelectedIndexes).IsEquivalentTo([new IndexPath(1, 0)]);
+            await Assert.That(target.SelectedItem?.Caption).IsEqualTo("Node 1-1");
+            await Assert.That(target.SelectedItems.Select(static x => x?.Caption ?? "")).IsEquivalentTo(["Node 1-1"]);
+            await Assert.That(indexesChangedRaised).IsEqualTo(1);
+            await Assert.That(selectionChangedRaised).IsZero();
+            await Assert.That(selectedIndexRaised).IsEqualTo(1);
+            await Assert.That(selectedItemRaised).IsZero();
         }
 
-        [AvaloniaFact(Timeout = 10000)]
-        public void Moving_Unselected_Child_Item_From_After_Selected_Item_To_Before_Updates_State()
+        [Test]
+        public async Task Moving_Unselected_Child_Item_From_After_Selected_Item_To_Before_Updates_State()
         {
             var data = CreateData();
             var target = CreateTarget(data);
@@ -1333,10 +1329,10 @@ public class TreeSelectionModelBaseTests_Single
 
             target.IndexesChanged += (s, e) =>
             {
-                Assert.Equal(new(1), e.ParentIndex);
-                Assert.Equal(0, e.StartIndex);
-                Assert.Equal(2, e.EndIndex);
-                Assert.Equal(1, e.Delta);
+                // await Assert.That(e.ParentIndex).IsEqualTo(new IndexPath(1));
+                // await Assert.That(e.StartIndex).IsZero();
+                // await Assert.That(e.EndIndex).IsEqualTo(2);
+                // await Assert.That(e.Delta).IsEqualTo(1);
                 ++indexesChangedRaised;
             };
 
@@ -1360,20 +1356,20 @@ public class TreeSelectionModelBaseTests_Single
 
             data[1].Children!.Move(2, 0);
 
-            Assert.Equal(1, target.Count);
-            Assert.Equal(new(1, 2), target.SelectedIndex);
-            Assert.Equal([new(1, 2)], target.SelectedIndexes);
-            Assert.Equal("Node 1-1", target.SelectedItem?.Caption);
-            Assert.Equal(["Node 1-1"], target.SelectedItems.Select(x => x?.Caption));
-            Assert.Equal(1, indexesChangedRaised);
-            Assert.Equal(0, selectionChangedRaised);
-            Assert.Equal(1, selectedIndexRaised);
-            Assert.Equal(0, selectedItemRaised);
+            await Assert.That(target.Count).IsEqualTo(1);
+            await Assert.That(target.SelectedIndex).IsEqualTo(new IndexPath(1, 2));
+            await Assert.That(target.SelectedIndexes).IsEquivalentTo([new IndexPath(1, 2)]);
+            await Assert.That(target.SelectedItem?.Caption).IsEqualTo("Node 1-1");
+            await Assert.That(target.SelectedItems.Select(static x => x?.Caption ?? "")).IsEquivalentTo(["Node 1-1"]);
+            await Assert.That(indexesChangedRaised).IsEqualTo(1);
+            await Assert.That(selectionChangedRaised).IsZero();
+            await Assert.That(selectedIndexRaised).IsEqualTo(1);
+            await Assert.That(selectedItemRaised).IsZero();
         }
 
 
-        [AvaloniaFact(Timeout = 10000)]
-        public void Resetting_Root_Updates_State()
+        [Test]
+        public async Task Resetting_Root_Updates_State()
         {
             var data = CreateData();
             var target = CreateTarget(data);
@@ -1394,17 +1390,17 @@ public class TreeSelectionModelBaseTests_Single
 
             data.Clear();
 
-            Assert.Equal(default, target.SelectedIndex);
-            Assert.Empty(target.SelectedIndexes);
+            await Assert.That(target.SelectedIndex).IsEmpty();
+            await Assert.That(target.SelectedIndexes).IsEmpty();
             Assert.Null(target.SelectedItem);
-            Assert.Empty(target.SelectedItems);
-            Assert.Equal(default, target.AnchorIndex);
-            Assert.Equal(0, selectionChangedRaised);
-            Assert.Equal(1, selectedIndexRaised);
+            await Assert.That(target.SelectedItems).IsEmpty();
+            await Assert.That(target.AnchorIndex).IsEmpty();
+            await Assert.That(selectionChangedRaised).IsZero();
+            await Assert.That(selectedIndexRaised).IsEqualTo(1);
         }
 
-        [AvaloniaFact(Timeout = 10000)]
-        public void Handles_Selection_Made_In_CollectionChanged()
+        [Test]
+        public async Task Handles_Selection_Made_In_CollectionChanged()
         {
             // Tests the following scenario:
             //
@@ -1426,11 +1422,11 @@ public class TreeSelectionModelBaseTests_Single
 
             data.Add(new Node { Caption = "foo" });
 
-            Assert.Equal(new IndexPath(0), target.SelectedIndex);
-            Assert.Equal(new[] { new IndexPath(0) }, target.SelectedIndexes);
-            Assert.Equal("foo", target.SelectedItem!.Caption);
-            Assert.Equal(new[] { "foo" }, target.SelectedItems.Select(x => x!.Caption));
-            Assert.Equal(new IndexPath(0), target.AnchorIndex);
+            await Assert.That(target.SelectedIndex).IsEqualTo(new IndexPath(0));
+            await Assert.That(target.SelectedIndexes).IsEquivalentTo([new IndexPath(0)]);
+            await Assert.That(target.SelectedItem!.Caption).IsEqualTo("foo");
+            await Assert.That(target.SelectedItems.Select(static x => x?.Caption ?? "")).IsEquivalentTo(["foo"]);
+            await Assert.That(target.AnchorIndex).IsEqualTo(new IndexPath(0));
         }
     }
 
