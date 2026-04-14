@@ -216,7 +216,7 @@ public class TreeDataGridItemsSourceView : INotifyCollectionChanged, ICollection
     private void ThrowDisposed() => throw new ObjectDisposedException(nameof(TreeDataGridItemsSourceView));
 }
 
-public class TreeDataGridItemsSourceView<T> : TreeDataGridItemsSourceView, IReadOnlyList<T>
+public sealed class TreeDataGridItemsSourceView<T> : TreeDataGridItemsSourceView, IReadOnlyList<T>
 {
     /// <summary>
     ///  Gets an empty <see cref="TreeDataGridItemsSourceView"/>

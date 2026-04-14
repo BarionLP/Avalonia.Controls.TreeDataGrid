@@ -16,30 +16,24 @@ public enum TreeDataGridRowDropPosition
 /// Provides data for the <see cref="TreeDataGrid.RowDragOver"/> and
 /// <see cref="TreeDataGrid.RowDrop"/> events.
 /// </summary>
-public class TreeDataGridRowDragEventArgs : RoutedEventArgs
+/// <remarks>
+/// Initializes a new instance of the <see cref="TreeDataGridRowDragEventArgs"/> class.
+/// </remarks>
+/// <param name="routedEvent">The event being raised.</param>
+/// <param name="row">The row that is being dragged over.</param>
+/// <param name="inner">The inner drag event args.</param>
+public sealed class TreeDataGridRowDragEventArgs(RoutedEvent routedEvent, TreeDataGridRow? row, DragEventArgs inner) : RoutedEventArgs(routedEvent)
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="TreeDataGridRowDragEventArgs"/> class.
-    /// </summary>
-    /// <param name="routedEvent">The event being raised.</param>
-    /// <param name="row">The row that is being dragged over.</param>
-    /// <param name="inner">The inner drag event args.</param>
-    public TreeDataGridRowDragEventArgs(RoutedEvent routedEvent, TreeDataGridRow? row, DragEventArgs inner)
-        : base(routedEvent)
-    {
-        TargetRow = row;
-        Inner = inner;
-    }
 
     /// <summary>
     /// Gets the <see cref="DragEventArgs"/> that describes the drag/drop operation.
     /// </summary>
-    public DragEventArgs Inner { get; }
+    public DragEventArgs Inner { get; } = inner;
 
     /// <summary>
     /// Gets the row being dragged over.
     /// </summary>
-    public TreeDataGridRow? TargetRow { get; }
+    public TreeDataGridRow? TargetRow { get; } = row;
 
     /// <summary>
     /// Gets or sets a value indicating the how the data should be dropped into

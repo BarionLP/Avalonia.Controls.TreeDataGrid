@@ -3,7 +3,7 @@ using Avalonia.Controls.Primitives;
 
 namespace Avalonia.Controls;
 
-public class TreeDataGridRowEventArgs
+public sealed class TreeDataGridRowEventArgs
 {
     public TreeDataGridRowEventArgs(TreeDataGridRow row, int rowIndex)
     {
@@ -21,8 +21,10 @@ public class TreeDataGridRowEventArgs
 
     internal void Update(TreeDataGridRow? row, int rowIndex)
     {
-        if (row is object && Row is object)
+        if (row is not null && Row is not null)
+        {
             throw new NotSupportedException("Nested TreeDataGrid row prepared/clearing detected.");
+        }
 
         Row = row!;
         RowIndex = rowIndex;
