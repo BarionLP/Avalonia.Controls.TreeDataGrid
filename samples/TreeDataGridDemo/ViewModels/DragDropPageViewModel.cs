@@ -1,12 +1,12 @@
 ﻿using System.Collections.ObjectModel;
 using Avalonia.Controls;
+using Avalonia.Controls.Models;
 using Avalonia.Controls.Models.TreeDataGrid;
-using ReactiveUI;
 using TreeDataGridDemo.Models;
 
 namespace TreeDataGridDemo.ViewModels;
 
-internal class DragDropPageViewModel : ReactiveObject
+internal class DragDropPageViewModel : NotifyingBase
 {
     private ObservableCollection<DragDropItem> _data;
 

@@ -3,20 +3,19 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Reactive.Linq;
 using System.Runtime.InteropServices;
 using Avalonia.Controls;
+using Avalonia.Controls.Models;
 using Avalonia.Controls.Models.TreeDataGrid;
 using Avalonia.Controls.Selection;
 using Avalonia.Data.Converters;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
-using ReactiveUI;
 using TreeDataGridDemo.Models;
 
 namespace TreeDataGridDemo.ViewModels;
 
-public class FilesPageViewModel : ReactiveObject
+public class FilesPageViewModel : NotifyingBase
 {
     private static IconConverter? s_iconConverter;
     private readonly HierarchicalTreeDataGridSource<FileTreeNodeModel>? _treeSource;
@@ -29,7 +28,7 @@ public class FilesPageViewModel : ReactiveObject
 
     public FilesPageViewModel()
     {
-        Drives = DriveInfo.GetDrives().Select(x => x.Name).ToList();
+        Drives = [.. DriveInfo.GetDrives().Select(x => x.Name)];
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
@@ -42,16 +41,18 @@ public class FilesPageViewModel : ReactiveObject
 
         _source = _treeSource = CreateTreeSource();
 
-        this.WhenAnyValue(x => x.SelectedDrive)
-            .Subscribe(x =>
+        PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(SelectedDrive))
             {
                 _root = new FileTreeNodeModel(_selectedDrive, isDirectory: true, isRoot: true);
 
                 if (_treeSource is not null)
-                    _treeSource.Items = new[] { _root };
+                    _treeSource.Items = [_root];
                 else if (_flatSource is not null)
                     _flatSource.Items = _root.Children;
-            });
+            }
+        };
     }
 
     public bool CellSelection
@@ -66,7 +67,7 @@ public class FilesPageViewModel : ReactiveObject
                     Source.Selection = new TreeDataGridCellSelectionModel<FileTreeNodeModel>(Source) { SingleSelect = false };
                 else
                     Source.Selection = new TreeDataGridRowSelectionModel<FileTreeNodeModel>(Source) { SingleSelect = false };
-                this.RaisePropertyChanged();
+                RaisePropertyChanged();
             }
         }
     }
@@ -86,7 +87,7 @@ public class FilesPageViewModel : ReactiveObject
     public string SelectedDrive
     {
         get => _selectedDrive;
-        set => this.RaiseAndSetIfChanged(ref _selectedDrive, value);
+        set => RaiseAndSetIfChanged(ref _selectedDrive, value);
     }
 
     public string? SelectedPath
@@ -98,7 +99,7 @@ public class FilesPageViewModel : ReactiveObject
     public ITreeDataGridSource<FileTreeNodeModel> Source
     {
         get => _source;
-        private set => this.RaiseAndSetIfChanged(ref _source, value);
+        private set => RaiseAndSetIfChanged(ref _source, value);
     }
 
     public static IMultiValueConverter FileIconConverter
@@ -107,16 +108,14 @@ public class FilesPageViewModel : ReactiveObject
         {
             if (s_iconConverter is null)
             {
-                using (var fileStream = AssetLoader.Open(new Uri("avares://TreeDataGridDemo/Assets/file.png")))
-                using (var folderStream = AssetLoader.Open(new Uri("avares://TreeDataGridDemo/Assets/folder.png")))
-                using (var folderOpenStream = AssetLoader.Open(new Uri("avares://TreeDataGridDemo/Assets/folder-open.png")))
-                {
-                    var fileIcon = new Bitmap(fileStream);
-                    var folderIcon = new Bitmap(folderStream);
-                    var folderOpenIcon = new Bitmap(folderOpenStream);
+                using var fileStream = AssetLoader.Open(new Uri("avares://TreeDataGridDemo/Assets/file.png"));
+                using var folderStream = AssetLoader.Open(new Uri("avares://TreeDataGridDemo/Assets/folder.png"));
+                using var folderOpenStream = AssetLoader.Open(new Uri("avares://TreeDataGridDemo/Assets/folder-open.png"));
+                var fileIcon = new Bitmap(fileStream);
+                var folderIcon = new Bitmap(folderStream);
+                var folderOpenIcon = new Bitmap(folderOpenStream);
 
-                    s_iconConverter = new IconConverter(fileIcon, folderOpenIcon, folderIcon);
-                }
+                s_iconConverter = new IconConverter(fileIcon, folderOpenIcon, folderIcon);
             }
 
             return s_iconConverter;

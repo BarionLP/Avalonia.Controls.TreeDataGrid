@@ -1,30 +1,29 @@
 ﻿using System;
 using System.Collections.ObjectModel;
 using System.Linq;
-using ReactiveUI;
+using Avalonia.Controls.Models;
 
 namespace TreeDataGridDemo.Models;
 
-public class DragDropItem : ReactiveObject
+public class DragDropItem(string name) : NotifyingBase
 {
-    private static Random _random = new Random(0);
+    private static readonly Random _random = new(0);
     private ObservableCollection<DragDropItem>? _children;
     private bool _allowDrag = true;
     private bool _allowDrop = true;
 
-    public DragDropItem(string name) => Name = name;
-    public string Name { get; }
+    public string Name { get; } = name;
 
     public bool AllowDrag
     {
         get => _allowDrag;
-        set => this.RaiseAndSetIfChanged(ref _allowDrag, value);
+        set => RaiseAndSetIfChanged(ref _allowDrag, value);
     }
 
     public bool AllowDrop
     {
         get => _allowDrop;
-        set => this.RaiseAndSetIfChanged(ref _allowDrop, value);
+        set => RaiseAndSetIfChanged(ref _allowDrop, value);
     }
 
     public ObservableCollection<DragDropItem> Children => _children ??= CreateRandomItems();
