@@ -142,10 +142,12 @@ public class TreeDataGridRow : TemplatedControl
             CellsPresenter?.Realize(RowIndex);
     }
 
+    private PointerPressedEventArgs? lastPointerPressedEventArgs;
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);
-        _mouseDownPosition = !e.Handled ? e.GetPosition(this) : s_InvalidPoint;
+        _mouseDownPosition = e.Handled ? s_InvalidPoint : e.GetPosition(this);
+        lastPointerPressedEventArgs = e;
     }
 
     protected override void OnPointerMoved(PointerEventArgs e)
@@ -172,7 +174,7 @@ public class TreeDataGridRow : TemplatedControl
 
         var presenter = Parent as TreeDataGridRowsPresenter;
         var owner = presenter?.TemplatedParent as TreeDataGrid;
-        owner?.RaiseRowDragStarted(e);
+        owner?.RaiseRowDragStarted(lastPointerPressedEventArgs!);
     }
 
     protected override void OnPointerReleased(PointerReleasedEventArgs e)

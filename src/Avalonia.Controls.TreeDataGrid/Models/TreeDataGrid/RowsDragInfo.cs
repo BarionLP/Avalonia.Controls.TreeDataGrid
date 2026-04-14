@@ -7,11 +7,11 @@ namespace Avalonia.Controls.Models.TreeDataGrid;
 /// by <see cref="Avalonia.Controls.TreeDataGrid.AutoDragDropRows"/>.
 /// </summary>
 /// <remarks>
-/// Initializes a new instance of the <see cref="DragInfo"/> class.
+/// Initializes a new instance of the <see cref="RowsDragInfo"/> class.
 /// </remarks>
 /// <param name="source">The source of the drag operation/</param>
 /// <param name="indexes">The indexes being dragged.</param>
-public sealed class DragInfo(ITreeDataGridSource source, IEnumerable<IndexPath> indexes)
+public sealed class RowsDragInfo(ITreeDataGridSource source, IEnumerable<IndexPath> indexes)
 {
     /// <summary>
     /// Defines the data format in an <see cref="Input.IDataObject"/>.

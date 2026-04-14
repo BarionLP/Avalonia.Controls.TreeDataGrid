@@ -18,6 +18,8 @@ namespace Avalonia.Controls;
 
 public class TreeDataGrid : TemplatedControl
 {
+    private static readonly DataFormat<RowsDragInfo> rowsDragInfoDataFormat = DataFormat.CreateInProcessFormat<RowsDragInfo>("Barion.TreeDataGrid.RowsDragInfo");
+
     public static readonly StyledProperty<bool> AutoDragDropRowsProperty =
         AvaloniaProperty.Register<TreeDataGrid, bool>(nameof(AutoDragDropRows));
 
@@ -448,7 +450,7 @@ public class TreeDataGrid : TemplatedControl
         }
     }
 
-    internal async Task RaiseRowDragStarted(PointerEventArgs trigger)
+    internal async Task RaiseRowDragStarted(PointerPressedEventArgs trigger)
     {
         if (_source is null || RowSelection is null) return;
 
@@ -467,10 +469,10 @@ public class TreeDataGrid : TemplatedControl
 
         if (allowedEffects is not DragDropEffects.None)
         {
-            // var data = new DataObject();
-            // var info = new DragInfo(_source, [.. RowSelection.SelectedIndexes]);
-            // data.Set(DragInfo.DataFormat, info);
-            // await DragDrop.DoDragDropAsync(trigger, data, allowedEffects);
+            var data = new DataTransfer();
+            var info = new RowsDragInfo(_source, [.. RowSelection.SelectedIndexes]);
+            data.Add(DataTransferItem.Create(rowsDragInfoDataFormat, info));
+            await DragDrop.DoDragDropAsync(trigger, data, allowedEffects);
         }
     }
 
@@ -607,38 +609,38 @@ public class TreeDataGrid : TemplatedControl
     private bool CalculateAutoDragDrop(
         TreeDataGridRow? targetRow,
         DragEventArgs e,
-        [NotNullWhen(true)] out DragInfo? data,
+        [NotNullWhen(true)] out RowsDragInfo? data,
         out TreeDataGridRowDropPosition position)
     {
-        // if (!AutoDragDropRows ||
-        //     e.Data.Get(DragInfo.DataFormat) is not DragInfo di ||
-        //     _source is null ||
-        //     _source.IsSorted ||
-        //     targetRow is null ||
-        //     di.Source != _source)
+        if (!AutoDragDropRows ||
+            e.DataTransfer.TryGetValue(rowsDragInfoDataFormat) is not RowsDragInfo di ||
+            _source is null ||
+            _source.IsSorted ||
+            targetRow is null ||
+            di.Source != _source)
         {
             data = null;
             position = TreeDataGridRowDropPosition.None;
             return false;
         }
 
-        // var targetIndex = _source.Rows.RowIndexToModelIndex(targetRow.RowIndex);
-        // position = GetDropPosition(_source, e, targetRow);
+        var targetIndex = _source.Rows.RowIndexToModelIndex(targetRow.RowIndex);
+        position = GetDropPosition(_source, e, targetRow);
 
-        // // We can't drop rows into themselves or their descendents.
-        // foreach (var sourceIndex in di.Indexes)
-        // {
-        //     if (sourceIndex.IsAncestorOf(targetIndex) ||
-        //         (sourceIndex == targetIndex && position == TreeDataGridRowDropPosition.Inside))
-        //     {
-        //         data = null;
-        //         position = TreeDataGridRowDropPosition.None;
-        //         return false;
-        //     }
-        // }
+        // We can't drop rows into themselves or their descendents.
+        foreach (var sourceIndex in di.Indexes)
+        {
+            if (sourceIndex.IsAncestorOf(targetIndex) ||
+                (sourceIndex == targetIndex && position == TreeDataGridRowDropPosition.Inside))
+            {
+                data = null;
+                position = TreeDataGridRowDropPosition.None;
+                return false;
+            }
+        }
 
-        // data = di;
-        // return true;
+        data = di;
+        return true;
     }
 
     private void OnDragOver(DragEventArgs e)
@@ -697,8 +699,10 @@ public class TreeDataGrid : TemplatedControl
 
         if (route.HasHandlers)
         {
-            var ev = new TreeDataGridRowDragEventArgs(RowDropEvent, row, e);
-            ev.Position = position;
+            var ev = new TreeDataGridRowDragEventArgs(RowDropEvent, row, e)
+            {
+                Position = position
+            };
             RaiseEvent(ev);
 
             if (ev.Handled || e.DragEffects != DragDropEffects.Move)

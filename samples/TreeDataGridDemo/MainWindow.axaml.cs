@@ -97,7 +97,7 @@ public partial class MainWindow : Window
 
     private void DragDrop_RowDragStarted(object? sender, TreeDataGridRowDragStartedEventArgs e)
     {
-        foreach (DragDropItem i in e.Models)
+        foreach (var i in e.Models.Cast<DragDropItem>())
         {
             if (!i.AllowDrag)
                 e.AllowedEffects = DragDropEffects.None;
