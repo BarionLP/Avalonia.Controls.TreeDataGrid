@@ -8,8 +8,7 @@ namespace Avalonia.Controls.Models.TreeDataGrid;
 
 internal static class CollectionExtensions
 {
-    public static readonly NotifyCollectionChangedEventArgs ResetEvent =
-        new(NotifyCollectionChangedAction.Reset);
+    public static readonly NotifyCollectionChangedEventArgs ResetEvent = new(NotifyCollectionChangedAction.Reset);
 
     public static int BinarySearch<TRow, TModel>(
         this IReadOnlyList<TRow> items,
