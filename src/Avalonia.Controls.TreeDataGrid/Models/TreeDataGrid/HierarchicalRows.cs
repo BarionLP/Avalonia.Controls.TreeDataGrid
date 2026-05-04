@@ -18,11 +18,14 @@ public class HierarchicalRows<TModel> : ReadOnlyListBase<HierarchicalRow<TModel>
     private Comparison<TModel>? _comparison;
     private bool _ignoreCollectionChanges;
 
-    public HierarchicalRows(
-        IExpanderRowController<TModel> controller,
-        TreeDataGridItemsSourceView<TModel> items,
-        IExpanderColumn<TModel> expanderColumn,
-        Comparison<TModel>? comparison)
+    public override HierarchicalRow<TModel> this[int index] => _flattenedRows[index];
+    IRow IReadOnlyList<IRow>.this[int index] => _flattenedRows[index];
+    public override int Count => _flattenedRows.Count;
+    public bool IsFiltered => _roots.IsFiltered;
+
+    public event NotifyCollectionChangedEventHandler? CollectionChanged;
+
+    public HierarchicalRows(IExpanderRowController<TModel> controller, TreeDataGridItemsSourceView<TModel> items, IExpanderColumn<TModel> expanderColumn, Comparison<TModel>? comparison)
     {
         _controller = controller;
         _flattenedRows = [];
@@ -32,10 +35,6 @@ public class HierarchicalRows<TModel> : ReadOnlyListBase<HierarchicalRow<TModel>
         _comparison = comparison;
         InitializeRows();
     }
-
-    public override HierarchicalRow<TModel> this[int index] => _flattenedRows[index];
-    IRow IReadOnlyList<IRow>.this[int index] => _flattenedRows[index];
-    public override int Count => _flattenedRows.Count;
 
     public void Dispose()
     {
@@ -47,12 +46,14 @@ public class HierarchicalRows<TModel> : ReadOnlyListBase<HierarchicalRow<TModel>
     public void Expand(IndexPath index)
     {
         var count = index.Count;
-        var rows = (IReadOnlyList<HierarchicalRow<TModel>>?)_roots;
+        var rows = (IReadOnlyList<HierarchicalRow<TModel>>)_roots;
 
         for (var i = 0; i < count; ++i)
         {
             if (rows is null)
+            {
                 break;
+            }
 
             var modelIndex = index[i];
             var found = false;
@@ -68,8 +69,7 @@ public class HierarchicalRows<TModel> : ReadOnlyListBase<HierarchicalRow<TModel>
                 }
             }
 
-            if (!found)
-                break;
+            if (!found) break;
         }
     }
 
@@ -77,19 +77,20 @@ public class HierarchicalRows<TModel> : ReadOnlyListBase<HierarchicalRow<TModel>
     {
         _ignoreCollectionChanges = true;
 
-        try 
+        try
         {
-            if (row is not null)
-                row.IsExpanded = predicate(row.Model);
+            row?.IsExpanded = predicate(row.Model);
 
             var children = row is null ? _roots : row.Children;
 
             if (children is not null)
-                ExpandCollapseRecursiveCore(children, predicate); 
+            {
+                ExpandCollapseRecursiveCore(children, predicate);
+            }
         }
-        finally 
-        { 
-            _ignoreCollectionChanges = false; 
+        finally
+        {
+            _ignoreCollectionChanges = false;
         }
 
         _flattenedRows.Clear();
@@ -104,8 +105,7 @@ public class HierarchicalRows<TModel> : ReadOnlyListBase<HierarchicalRow<TModel>
 
         for (var i = 0; i < count; ++i)
         {
-            if (rows is null)
-                break;
+            if (rows is null) break;
 
             var modelIndex = index[i];
             var found = false;
@@ -115,40 +115,47 @@ public class HierarchicalRows<TModel> : ReadOnlyListBase<HierarchicalRow<TModel>
                 if (row.ModelIndex == modelIndex)
                 {
                     if (i == count - 1)
+                    {
                         row.IsExpanded = false;
+                    }
+
                     rows = row.Children;
                     found = true;
                     break;
                 }
             }
 
-            if (!found)
-                break;
+            if (!found) break;
         }
     }
 
     public (int index, double y) GetRowAt(double y)
     {
-        if (MathUtilities.IsZero(y))
-            return (0, 0);
-        return (-1, -1);
+        return MathUtilities.IsZero(y) ? (0, 0) : (-1, -1);
     }
 
     public ICell RealizeCell(IColumn column, int columnIndex, int rowIndex)
     {
         if (column is IColumn<TModel> c)
+        {
             return c.CreateCell(this[rowIndex]);
-        else
-            throw new InvalidOperationException("Invalid column.");
+        }
+        throw new InvalidOperationException("Invalid column.");
+    }
+
+    public void Filter(Func<TModel, bool>? filter)
+    {
+        _roots.Filter(filter);
+        FilterChildren(filter);
     }
 
     public void SetItems(TreeDataGridItemsSourceView<TModel> items)
     {
         _ignoreCollectionChanges = true;
-        
-        try {_roots.SetItems(items); }
+
+        try { _roots.SetItems(items); }
         finally { _ignoreCollectionChanges = false; }
-        
+
         _flattenedRows.Clear();
         InitializeRows();
         CollectionChanged?.Invoke(this, CollectionExtensions.ResetEvent);
@@ -173,20 +180,24 @@ public class HierarchicalRows<TModel> : ReadOnlyListBase<HierarchicalRow<TModel>
         (cell as IDisposable)?.Dispose();
     }
 
-    public int GetParentRowIndex(IndexPath modelIndex)
+    public void RefreshFilter()
     {
-        return ModelIndexToRowIndex(modelIndex[..^1]);
+        _roots.RefreshFilter();
+        RefreshChildrenFilter();
     }
+
+    public int GetParentRowIndex(IndexPath modelIndex) => ModelIndexToRowIndex(modelIndex[..^1]);
 
     public int ModelIndexToRowIndex(IndexPath modelIndex)
     {
-        if (modelIndex == default)
-            return -1;
-        
+        if (modelIndex == default) return -1;
+
         for (var i = 0; i < _flattenedRows.Count; ++i)
         {
             if (_flattenedRows[i].ModelIndexPath == modelIndex)
+            {
                 return i;
+            }
         }
 
         return -1;
@@ -195,14 +206,15 @@ public class HierarchicalRows<TModel> : ReadOnlyListBase<HierarchicalRow<TModel>
     public IndexPath RowIndexToModelIndex(int rowIndex)
     {
         if (rowIndex >= 0 && rowIndex < _flattenedRows.Count)
+        {
             return _flattenedRows[rowIndex].ModelIndexPath;
+        }
+
         return default;
     }
 
     public override IEnumerator<HierarchicalRow<TModel>> GetEnumerator() => _flattenedRows.GetEnumerator();
     IEnumerator<IRow> IEnumerable<IRow>.GetEnumerator() => _flattenedRows.GetEnumerator();
-
-    public event NotifyCollectionChangedEventHandler? CollectionChanged;
 
     void IExpanderRowController<TModel>.OnBeginExpandCollapse(IExpanderRow<TModel> row)
     {
@@ -214,17 +226,15 @@ public class HierarchicalRows<TModel> : ReadOnlyListBase<HierarchicalRow<TModel>
         _controller.OnEndExpandCollapse(row);
     }
 
-    void IExpanderRowController<TModel>.OnChildCollectionChanged(
-        IExpanderRow<TModel> row,
-        NotifyCollectionChangedEventArgs e)
+    void IExpanderRowController<TModel>.OnChildCollectionChanged(IExpanderRow<TModel> row, NotifyCollectionChangedEventArgs e)
     {
-        if (_ignoreCollectionChanges)
-            return;
+        if (_ignoreCollectionChanges) return;
 
-        if (row is HierarchicalRow<TModel> h)
-            OnCollectionChanged(h.ModelIndexPath, e);
-        else
+        if (row is not HierarchicalRow<TModel> h)
+        {
             throw new NotSupportedException("Unexpected row type.");
+        }
+        OnCollectionChanged(h.ModelIndexPath, e);
     }
 
     internal bool TryGetRowIndex(in IndexPath modelIndex, out int rowIndex, int fromRowIndex = 0)
@@ -263,7 +273,7 @@ public class HierarchicalRows<TModel> : ReadOnlyListBase<HierarchicalRow<TModel>
         var i = index;
         _flattenedRows.Insert(i++, row);
 
-        if (row.Children is object)
+        if (row.Children is not null)
         {
             foreach (var childRow in row.Children)
             {
@@ -274,23 +284,41 @@ public class HierarchicalRows<TModel> : ReadOnlyListBase<HierarchicalRow<TModel>
         return i - index;
     }
 
+    private void FilterChildren(Func<TModel, bool>? filter)
+    {
+        foreach (var row in _roots)
+        {
+            row.FilterChildren(filter);
+        }
+    }
+
+    private void RefreshChildrenFilter()
+    {
+        foreach (var row in _roots)
+        {
+            row.RefreshFilter();
+        }
+    }
+
     private static void ExpandCollapseRecursiveCore(IReadOnlyList<HierarchicalRow<TModel>> rows, Func<TModel, bool> predicate)
     {
-        for (var i = 0; i < rows.Count; ++i)
+        for (int i = 0; i < rows.Count; i++)
         {
             var row = rows[i];
-            var expand = predicate(row.Model);
-
-            if (expand)
+            if (predicate(row.Model))
             {
                 row.IsExpanded = true;
-                if (row.Children is { } children)
-                    ExpandCollapseRecursiveCore(children, predicate);
+                if (row.Children is not null)
+                {
+                    ExpandCollapseRecursiveCore(row.Children, predicate);
+                }
             }
             else
             {
-                if (row.Children is { } children)
-                    ExpandCollapseRecursiveCore(children, predicate);
+                if (row.Children is not null)
+                {
+                    ExpandCollapseRecursiveCore(row.Children, predicate);
+                }
                 row.IsExpanded = false;
             }
         }
@@ -300,6 +328,55 @@ public class HierarchicalRows<TModel> : ReadOnlyListBase<HierarchicalRow<TModel>
     {
         if (_ignoreCollectionChanges)
             return;
+
+        switch (e.Action)
+        {
+            case NotifyCollectionChangedAction.Add:
+                if (TryGetRowIndex(parentIndex, out var parentRowIndex))
+                {
+                    var insert = Advance(parentRowIndex + 1, e.NewStartingIndex);
+                    Add(insert, e.NewItems, raise: true);
+                }
+                break;
+            case NotifyCollectionChangedAction.Remove:
+                if (TryGetRowIndex(parentIndex, out parentRowIndex))
+                {
+                    var start = Advance(parentRowIndex + 1, e.OldStartingIndex);
+                    var end = Advance(start, e.OldItems!.Count);
+                    Remove(start, end - start, raise: true);
+                }
+                break;
+            case NotifyCollectionChangedAction.Replace:
+                if (TryGetRowIndex(parentIndex, out parentRowIndex))
+                {
+                    var start = Advance(parentRowIndex + 1, e.OldStartingIndex);
+                    var end = Advance(start, e.OldItems!.Count);
+                    Remove(start, end - start, raise: true);
+                    Add(start, e.NewItems, raise: true);
+                }
+                break;
+            case NotifyCollectionChangedAction.Move:
+                if (TryGetRowIndex(parentIndex, out parentRowIndex))
+                {
+                    var fromStart = Advance(parentRowIndex + 1, e.OldStartingIndex);
+                    var fromEnd = Advance(fromStart, e.OldItems!.Count);
+                    var to = Advance(parentRowIndex + 1, e.NewStartingIndex);
+                    Remove(fromStart, fromEnd - fromStart, raise: true);
+                    Add(to, e.NewItems, raise: true);
+                }
+                break;
+            case NotifyCollectionChangedAction.Reset:
+                if (TryGetRowIndex(parentIndex, out parentRowIndex))
+                {
+                    var children = parentRowIndex >= 0 ? _flattenedRows[parentRowIndex].Children : _roots;
+                    var count = GetDescendentRowCount(parentRowIndex);
+                    Remove(parentRowIndex + 1, count, raise: true);
+                    Add(parentRowIndex + 1, children, raise: true);
+                }
+                break;
+            default:
+                throw new NotSupportedException();
+        }
 
         void Add(int index, IEnumerable? items, bool raise)
         {
@@ -326,7 +403,7 @@ public class HierarchicalRows<TModel> : ReadOnlyListBase<HierarchicalRow<TModel>
 
         void Remove(int index, int count, bool raise)
         {
-            if (count == 0)
+            if (count is 0)
                 return;
 
             var oldItems = raise && CollectionChanged is not null ?
@@ -335,12 +412,11 @@ public class HierarchicalRows<TModel> : ReadOnlyListBase<HierarchicalRow<TModel>
             for (var i = 0; i < count; ++i)
             {
                 var row = _flattenedRows[i + index];
-                if (oldItems is not null)
-                    oldItems[i] = row;
+                oldItems?[i] = row;
             }
 
             _flattenedRows.RemoveRange(index, count);
-            
+
             if (oldItems is not null)
             {
                 CollectionChanged!(
@@ -362,7 +438,7 @@ public class HierarchicalRows<TModel> : ReadOnlyListBase<HierarchicalRow<TModel>
                 if (row.Children?.Count > 0)
                     i = Advance(i + 1, row.Children.Count);
                 else
-                    i += + 1;
+                    i += 1;
                 --count;
             }
 
@@ -383,55 +459,6 @@ public class HierarchicalRows<TModel> : ReadOnlyListBase<HierarchicalRow<TModel>
 
             return i - (rowIndex + 1);
         }
-
-        switch (e.Action)
-        {
-            case NotifyCollectionChangedAction.Add:
-                if (TryGetRowIndex(parentIndex, out var parentRowIndex))
-                {
-                    var insert = Advance(parentRowIndex + 1, e.NewStartingIndex);
-                    Add(insert, e.NewItems, true);
-                }
-                break;
-            case NotifyCollectionChangedAction.Remove:
-                if (TryGetRowIndex(parentIndex, out parentRowIndex))
-                {
-                    var start = Advance(parentRowIndex + 1, e.OldStartingIndex);
-                    var end = Advance(start, e.OldItems!.Count);
-                    Remove(start, end - start, true);
-                }
-                break;
-            case NotifyCollectionChangedAction.Replace:
-                if (TryGetRowIndex(parentIndex, out parentRowIndex))
-                {
-                    var start = Advance(parentRowIndex + 1, e.OldStartingIndex);
-                    var end = Advance(start, e.OldItems!.Count);
-                    Remove(start, end - start, true);
-                    Add(start, e.NewItems, true);
-                }
-                break;
-            case NotifyCollectionChangedAction.Move:
-                if (TryGetRowIndex(parentIndex, out parentRowIndex))
-                {
-                    var fromStart = Advance(parentRowIndex + 1, e.OldStartingIndex);
-                    var fromEnd = Advance(fromStart, e.OldItems!.Count);
-                    var to = Advance(parentRowIndex + 1, e.NewStartingIndex);
-                    Remove(fromStart, fromEnd - fromStart, true);
-                    Add(to, e.NewItems, true);
-                }
-                break;
-            case NotifyCollectionChangedAction.Reset:
-                if (TryGetRowIndex(parentIndex, out parentRowIndex))
-                {
-                    var children = parentRowIndex >= 0 ? _flattenedRows[parentRowIndex].Children : _roots;
-                    var count = GetDescendentRowCount(parentRowIndex);
-                    Remove(parentRowIndex + 1, count, true);
-                    Add(parentRowIndex + 1, children, true);
-                }
-                break;
-            default:
-                throw new NotSupportedException();
-        }
     }
 
     private void OnRootsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -439,28 +466,13 @@ public class HierarchicalRows<TModel> : ReadOnlyListBase<HierarchicalRow<TModel>
         OnCollectionChanged(default, e);
     }
 
-    private class RootRows : SortableRowsBase<TModel, HierarchicalRow<TModel>>,
-        IReadOnlyList<HierarchicalRow<TModel>>
+    private sealed class RootRows(HierarchicalRows<TModel> owner, TreeDataGridItemsSourceView<TModel> items, Comparison<TModel>? comparison) : SortableRowsBase<TModel, HierarchicalRow<TModel>>(items, comparison), IReadOnlyList<HierarchicalRow<TModel>>
     {
-        private readonly HierarchicalRows<TModel> _owner;
-
-        public RootRows(
-            HierarchicalRows<TModel> owner,
-            TreeDataGridItemsSourceView<TModel> items,
-            Comparison<TModel>? comparison)
-            : base(items, comparison)
-        {
-            _owner = owner;
-        }
+        private readonly HierarchicalRows<TModel> _owner = owner;
 
         protected override HierarchicalRow<TModel> CreateRow(int modelIndex, TModel model)
         {
-            return new HierarchicalRow<TModel>(
-                _owner,
-                _owner._expanderColumn,
-                new IndexPath(modelIndex),
-                model,
-                _owner._comparison);
+            return new HierarchicalRow<TModel>(_owner, _owner._expanderColumn, new IndexPath(modelIndex), model, _owner._comparison);
         }
     }
 }

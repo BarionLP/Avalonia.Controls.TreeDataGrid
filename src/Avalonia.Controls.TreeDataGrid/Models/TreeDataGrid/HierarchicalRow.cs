@@ -17,27 +17,11 @@ public class HierarchicalRow<TModel> : NotifyingBase,
     private readonly IExpanderRowController<TModel> _controller;
     private readonly IExpanderColumn<TModel> _expanderColumn;
     private Comparison<TModel>? _comparison;
+    private Func<TModel, bool>? _filter;
     private IEnumerable<TModel>? _childModels;
     private ChildRows? _childRows;
     private bool _isExpanded;
     private bool? _showExpander;
-
-    public HierarchicalRow(
-        IExpanderRowController<TModel> controller,
-        IExpanderColumn<TModel> expanderColumn,
-        IndexPath modelIndex,
-        TModel model,
-        Comparison<TModel>? comparison)
-    {
-        if (modelIndex.Count == 0)
-            throw new ArgumentException("Invalid model index");
-
-        _controller = controller;
-        _expanderColumn = expanderColumn;
-        _comparison = comparison;
-        ModelIndexPath = modelIndex;
-        Model = model;
-    }
 
     /// <summary>
     /// Gets the row's visible child rows.
@@ -89,14 +73,28 @@ public class HierarchicalRow<TModel> : NotifyingBase,
         private set => RaiseAndSetIfChanged(ref _showExpander, value);
     }
 
-    public void Dispose() => _childRows?.Dispose();
+    public HierarchicalRow(IExpanderRowController<TModel> controller, IExpanderColumn<TModel> expanderColumn, IndexPath modelIndex, TModel model, Comparison<TModel>? comparison)
+    {
+        if (modelIndex.Count is 0) throw new ArgumentException("Invalid model index");
+
+        _controller = controller;
+        _expanderColumn = expanderColumn;
+        _comparison = comparison;
+        ModelIndexPath = modelIndex;
+        Model = model;
+    }
+
+    public void Dispose()
+    {
+        _childRows?.Dispose();
+        GC.SuppressFinalize(this);
+    }
 
     public void UpdateModelIndex(int delta)
     {
         ModelIndexPath = ModelIndexPath[..^1].Append(ModelIndexPath[^1] + delta);
 
-        if (_childRows is null)
-            return;
+        if (_childRows is null) return;
 
         var childCount = _childRows.Count;
 
@@ -114,7 +112,9 @@ public class HierarchicalRow<TModel> : NotifyingBase,
         var childCount = _childRows.Count;
 
         for (var i = 0; i < childCount; ++i)
+        {
             _childRows[i].UpdateParentModelIndex(ModelIndexPath);
+        }
     }
 
     void IExpanderRow<TModel>.UpdateShowExpander(IExpanderCell cell, bool value)
@@ -127,13 +127,42 @@ public class HierarchicalRow<TModel> : NotifyingBase,
         _comparison = comparison;
 
         if (_childRows is null)
+        {
             return;
+        }
 
         _childRows.Sort(comparison);
 
         foreach (var row in _childRows)
         {
             row.SortChildren(comparison);
+        }
+    }
+
+    internal void FilterChildren(Func<TModel, bool>? filter)
+    {
+        _filter = filter;
+        if (_childRows == null)
+        {
+            return;
+        }
+        _childRows.Filter(filter);
+        foreach (var row in _childRows)
+        {
+            row.FilterChildren(filter);
+        }
+    }
+
+    internal void RefreshFilter()
+    {
+        if (_childRows is null)
+        {
+            return;
+        }
+        _childRows.RefreshFilter();
+        foreach (var row in _childRows)
+        {
+            row.RefreshFilter();
         }
     }
 
@@ -154,10 +183,15 @@ public class HierarchicalRow<TModel> : NotifyingBase,
         {
             _childModels = childModels;
             _childRows?.Dispose();
-            _childRows = new ChildRows(
-                this,
-                TreeDataGridItemsSourceView<TModel>.GetOrCreate(childModels),
-                _comparison);
+            _childRows = new ChildRows(this, TreeDataGridItemsSourceView<TModel>.GetOrCreate(childModels), _comparison);
+            if (_filter is not null)
+            {
+                _childRows.Filter(_filter);
+                foreach (var row in _childRows)
+                {
+                    row.FilterChildren(_filter);
+                }
+            }
         }
 
         if (_childRows?.Count > 0)
@@ -168,7 +202,9 @@ public class HierarchicalRow<TModel> : NotifyingBase,
         _controller.OnChildCollectionChanged(this, CollectionExtensions.ResetEvent);
 
         if (_isExpanded != oldExpanded)
+        {
             RaisePropertyChanged(nameof(IsExpanded));
+        }
 
         _controller.OnEndExpandCollapse(this);
         _expanderColumn.SetModelIsExpanded(this);
@@ -184,7 +220,7 @@ public class HierarchicalRow<TModel> : NotifyingBase,
         _expanderColumn.SetModelIsExpanded(this);
     }
 
-    private class ChildRows : SortableRowsBase<TModel, HierarchicalRow<TModel>>,
+    private sealed class ChildRows : SortableRowsBase<TModel, HierarchicalRow<TModel>>,
         IReadOnlyList<HierarchicalRow<TModel>>
     {
         private readonly HierarchicalRow<TModel> _owner;
@@ -201,18 +237,15 @@ public class HierarchicalRow<TModel> : NotifyingBase,
 
         protected override HierarchicalRow<TModel> CreateRow(int modelIndex, TModel model)
         {
-            return new HierarchicalRow<TModel>(
-                _owner._controller,
-                _owner._expanderColumn,
-                _owner.ModelIndexPath.Append(modelIndex),
-                model,
-                _owner._comparison);
+            return new HierarchicalRow<TModel>(_owner._controller, _owner._expanderColumn, _owner.ModelIndexPath.Append(modelIndex), model, _owner._comparison);
         }
 
         private void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
             if (_owner.IsExpanded)
+            {
                 _owner._controller.OnChildCollectionChanged(_owner, e);
+            }
         }
     }
 }
