@@ -6,7 +6,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace Avalonia.Controls;
 
@@ -16,7 +15,7 @@ public readonly struct IndexPath : IReadOnlyList<int>,
 {
     public static readonly IndexPath Unselected = default;
 
-    private readonly int _index;
+    private readonly int _index; // + 1 so default is 0 is invalid
     private readonly int[]? _path;
 
     public IndexPath(int index)

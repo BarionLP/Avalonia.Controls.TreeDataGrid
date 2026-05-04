@@ -11,16 +11,22 @@ namespace Avalonia.Controls.Utils;
 
 internal class StableSort
 {
-    public static List<int> SortedMap<T>(IReadOnlyList<T> elements, Comparison<int> compare)
+    public static List<int> SortedMap<T>(IReadOnlyList<T> elements, Comparison<int>? compare, Func<int, bool>? filter = null)
     {
         var map = new List<int>(elements.Count);
         for (var i = 0; i < elements.Count; i++)
         {
-            map.Add(i);
+            if(filter is null || filter(i))
+            {
+                map.Add(i);
+            }
         }
 
         var span = CollectionsMarshal.AsSpan(map);
-        SortHelper<int>.Sort(span, compare);
+        if(compare is not null)
+        {
+            SortHelper<int>.Sort(span, compare);
+        }
         return map;
     }
 }

@@ -29,20 +29,8 @@ public class HierarchicalTreeDataGridSource<TModel> : NotifyingBase,
     private HierarchicalRows<TModel>? _rows;
     private Comparison<TModel>? _comparison;
     private ITreeDataGridSelection? _selection;
+    private IColumn? _sortedColumn;
     private bool _isSelectionSet;
-
-    public HierarchicalTreeDataGridSource(TModel item)
-        : this([item])
-    {
-    }
-
-    public HierarchicalTreeDataGridSource(IEnumerable<TModel> items)
-    {
-        _items = items;
-        _itemsView = TreeDataGridItemsSourceView<TModel>.GetOrCreate(items);
-        Columns = [];
-        Columns.CollectionChanged += OnColumnsCollectionChanged;
-    }
 
     public IEnumerable<TModel> Items 
     {
@@ -54,8 +42,7 @@ public class HierarchicalTreeDataGridSource<TModel> : NotifyingBase,
                 _items = value;
                 _itemsView = TreeDataGridItemsSourceView<TModel>.GetOrCreate(value);
                 _rows?.SetItems(_itemsView);
-                if (_selection is object)
-                    _selection.Source = value;
+                _selection?.Source = value;
             }
         }
     }
@@ -67,8 +54,10 @@ public class HierarchicalTreeDataGridSource<TModel> : NotifyingBase,
     {
         get
         {
-            if (_selection == null && !_isSelectionSet)
+            if (_selection is null && !_isSelectionSet)
+            {
                 _selection = new TreeDataGridRowSelectionModel<TModel>(this);
+            }
             return _selection;
         }
         set
@@ -76,7 +65,10 @@ public class HierarchicalTreeDataGridSource<TModel> : NotifyingBase,
             if (_selection != value)
             {
                 if (value?.Source != _items)
+                {
                     throw new InvalidOperationException("Selection source must be set to Items.");
+                }
+
                 _selection = value;
                 _isSelectionSet = true;
                 RaisePropertyChanged();
@@ -88,6 +80,7 @@ public class HierarchicalTreeDataGridSource<TModel> : NotifyingBase,
 
     public ITreeDataGridCellSelectionModel<TModel>? CellSelection => Selection as ITreeDataGridCellSelectionModel<TModel>;
     public ITreeDataGridRowSelectionModel<TModel>? RowSelection => Selection as ITreeDataGridRowSelectionModel<TModel>;
+    public bool IsFiltered => _rows?.IsFiltered ?? false;
     public bool IsHierarchical => true;
     public bool IsSorted => _comparison is not null;
 
@@ -99,10 +92,37 @@ public class HierarchicalTreeDataGridSource<TModel> : NotifyingBase,
     public event EventHandler<RowEventArgs<HierarchicalRow<TModel>>>? RowCollapsed;
     public event Action? Sorted;
 
+    public HierarchicalTreeDataGridSource(TModel item)
+    : this([item]) { }
+
+    public HierarchicalTreeDataGridSource(IEnumerable<TModel> items)
+    {
+        _items = items;
+        _itemsView = TreeDataGridItemsSourceView<TModel>.GetOrCreate(items);
+        Columns = [];
+        Columns.CollectionChanged += OnColumnsCollectionChanged;
+    }
+
+    public void ClearSort(IColumn column)
+    {
+        if (column == _sortedColumn)
+        {
+            Sort(null);
+            column.SortDirection = null;
+            Sorted?.Invoke();
+        }
+    }
+
     public void Dispose()
     {
         _rows?.Dispose();
         GC.SuppressFinalize(this);
+    }
+
+    public void RefreshFilter()
+    {
+        GetOrCreateRows().RefreshFilter();
+        Sorted?.Invoke();
     }
 
     /// <summary>
