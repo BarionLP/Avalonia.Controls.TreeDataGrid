@@ -25,6 +25,11 @@ public interface ITreeDataGridSource : INotifyPropertyChanged
     /// <summary>
     /// Gets or sets the selection model.
     /// </summary>
+    /// <remarks>
+    /// The selection mode of the control may be changed by setting this property to either an
+    /// instance of <see cref="T:Avalonia.Controls.Selection.TreeDataGridRowSelectionModel`1" /> for row selection, or 
+    /// <see cref="T:Avalonia.Controls.Selection.TreeDataGridCellSelectionModel`1" /> for cell selection.
+    /// </remarks>
     ITreeDataGridSelection? Selection { get; set; }
 
     /// <summary>

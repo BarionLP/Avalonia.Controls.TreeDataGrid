@@ -4,14 +4,11 @@ using System.Runtime.CompilerServices;
 
 namespace Avalonia.Controls.Models;
 
-public class NotifyingBase : INotifyPropertyChanged
+public abstract class NotifyingBase : INotifyPropertyChanged
 {
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    protected bool RaiseAndSetIfChanged<T>(
-        ref T field,
-        T value,
-        [CallerMemberName] string? propertyName = null)
+    protected bool RaiseAndSetIfChanged<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
     {
         if (!EqualityComparer<T>.Default.Equals(field, value))
         {
