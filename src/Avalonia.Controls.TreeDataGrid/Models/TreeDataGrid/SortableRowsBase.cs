@@ -167,15 +167,15 @@ public abstract class SortableRowsBase<TModel, TRow> : ReadOnlyListBase<TRow>, I
         CollectionChanged?.Invoke(this, CollectionExtensions.ResetEvent);
     }
 
-    private void OnItemsCollectionChanged(object? a, NotifyCollectionChangedEventArgs b)
+    private void OnItemsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
         if (_comparison is null && _filter is null)
         {
-            OnItemsCollectionChangedUnsorted(b);
+            OnItemsCollectionChangedUnsorted(e);
         }
         else
         {
-            OnItemsCollectionChangedSorted(b);
+            OnItemsCollectionChangedSorted(e);
         }
     }
 
@@ -370,5 +370,5 @@ public abstract class SortableRowsBase<TModel, TRow> : ReadOnlyListBase<TRow>, I
         return (c > 0) ? 1 : -1;
     }
 
-    private bool FilterByIndex(int a) => _filter!(_items[a]);
+    private bool FilterByIndex(int index) => _filter!(_items[index]);
 }
