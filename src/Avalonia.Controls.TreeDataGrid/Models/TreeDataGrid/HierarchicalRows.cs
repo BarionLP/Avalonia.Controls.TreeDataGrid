@@ -17,6 +17,7 @@ public class HierarchicalRows<TModel> : ReadOnlyListBase<HierarchicalRow<TModel>
     private readonly List<HierarchicalRow<TModel>> _flattenedRows;
     private Comparison<TModel>? _comparison;
     private bool _ignoreCollectionChanges;
+    private Func<TModel, bool>? _filter;
 
     public override HierarchicalRow<TModel> this[int index] => _flattenedRows[index];
     IRow IReadOnlyList<IRow>.this[int index] => _flattenedRows[index];
@@ -145,6 +146,7 @@ public class HierarchicalRows<TModel> : ReadOnlyListBase<HierarchicalRow<TModel>
 
     public void Filter(Func<TModel, bool>? filter)
     {
+        _filter = filter;
         _roots.Filter(filter);
         FilterChildren(filter);
     }
@@ -158,6 +160,7 @@ public class HierarchicalRows<TModel> : ReadOnlyListBase<HierarchicalRow<TModel>
 
         _flattenedRows.Clear();
         InitializeRows();
+        if(_filter is not null) FilterChildren(_filter);
         CollectionChanged?.Invoke(this, CollectionExtensions.ResetEvent);
     }
 
