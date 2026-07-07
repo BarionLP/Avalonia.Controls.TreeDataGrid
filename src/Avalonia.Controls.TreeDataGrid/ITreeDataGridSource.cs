@@ -25,13 +25,28 @@ public interface ITreeDataGridSource : INotifyPropertyChanged
     /// <summary>
     /// Gets or sets the selection model.
     /// </summary>
+    /// <remarks>
+    /// The selection mode of the control may be changed by setting this property to either an
+    /// instance of <see cref="T:Avalonia.Controls.Selection.TreeDataGridRowSelectionModel`1" /> for row selection, or 
+    /// <see cref="T:Avalonia.Controls.Selection.TreeDataGridCellSelectionModel`1" /> for cell selection.
+    /// </remarks>
     ITreeDataGridSelection? Selection { get; set; }
+
+    /// <summary>
+    /// Gets a value indicating whether the data source is filtered.
+    /// </summary>
+    bool IsFiltered { get; }
 
     /// <summary>
     /// Gets a value indicating whether the data source is hierarchical.
     /// </summary>
     bool IsHierarchical { get; }
 
+    /// <summary>
+    /// Gets the items in the data source.
+    /// </summary>
+    IEnumerable<object> Items { get; }
+    
     /// <summary>
     /// Gets a value indicating whether the data source is currently sorted.
     /// </summary>
@@ -50,17 +65,13 @@ public interface ITreeDataGridSource : INotifyPropertyChanged
     /// <param name="targetIndex">The model index of the drop target.</param>
     /// <param name="position">The position relative to the drop target.</param>
     /// <param name="effects">The requested drop effects.</param>
-    void DragDropRows(
-        ITreeDataGridSource source,
-        IEnumerable<IndexPath> indexes,
-        IndexPath targetIndex,
-        TreeDataGridRowDropPosition position,
-        DragDropEffects effects);
+    void DragDropRows(ITreeDataGridSource source, IEnumerable<IndexPath> indexes, IndexPath targetIndex, TreeDataGridRowDropPosition position, DragDropEffects effects);
 
     /// <summary>
-    /// Gets the items in the data source.
+    /// Clears any sorting applied to the specified column.
     /// </summary>
-    IEnumerable<object> Items { get; }
+    /// <param name="column">The column.</param>
+    void ClearSort(IColumn column);
 
     /// <summary>
     /// Gets the children of a model, if any.
@@ -76,11 +87,6 @@ public interface ITreeDataGridSource : INotifyPropertyChanged
     /// <param name="direction">The sort direction.</param>
     /// <returns>True if the sort could be performed; otherwise false.</returns>
     bool SortBy(IColumn column, ListSortDirection direction);
-
-    /// <summary>
-    /// Reverts everything to unsorted
-    /// </summary>
-    void Unsort();
 }
 
 /// <summary>
@@ -93,11 +99,11 @@ public interface ITreeDataGridSource<TModel> : ITreeDataGridSource
     /// </summary>
     new IEnumerable<TModel> Items { get; set; }
 
-    /// <summary>
-    /// Sorts the data source using the specified comparison.
-    /// </summary>
-    /// <param name="comparison">
-    /// A <see cref="Comparison{TModel}"/> delegate that defines the item order.
-    /// </param>
-    void Sort(Comparison<TModel?>? comparison);
+    // /// <summary>
+    // /// Sorts the data source using the specified comparison.
+    // /// </summary>
+    // /// <param name="comparison">
+    // /// A <see cref="Comparison{TModel}"/> delegate that defines the item order.
+    // /// </param>
+    // void Sort(Comparison<TModel?>? comparison);
 }

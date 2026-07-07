@@ -29,20 +29,8 @@ public class HierarchicalTreeDataGridSource<TModel> : NotifyingBase,
     private HierarchicalRows<TModel>? _rows;
     private Comparison<TModel>? _comparison;
     private ITreeDataGridSelection? _selection;
+    private IColumn? _sortedColumn;
     private bool _isSelectionSet;
-
-    public HierarchicalTreeDataGridSource(TModel item)
-        : this([item])
-    {
-    }
-
-    public HierarchicalTreeDataGridSource(IEnumerable<TModel> items)
-    {
-        _items = items;
-        _itemsView = TreeDataGridItemsSourceView<TModel>.GetOrCreate(items);
-        Columns = [];
-        Columns.CollectionChanged += OnColumnsCollectionChanged;
-    }
 
     public IEnumerable<TModel> Items 
     {
@@ -54,8 +42,7 @@ public class HierarchicalTreeDataGridSource<TModel> : NotifyingBase,
                 _items = value;
                 _itemsView = TreeDataGridItemsSourceView<TModel>.GetOrCreate(value);
                 _rows?.SetItems(_itemsView);
-                if (_selection is object)
-                    _selection.Source = value;
+                _selection?.Source = value;
             }
         }
     }
@@ -67,8 +54,10 @@ public class HierarchicalTreeDataGridSource<TModel> : NotifyingBase,
     {
         get
         {
-            if (_selection == null && !_isSelectionSet)
+            if (_selection is null && !_isSelectionSet)
+            {
                 _selection = new TreeDataGridRowSelectionModel<TModel>(this);
+            }
             return _selection;
         }
         set
@@ -76,7 +65,10 @@ public class HierarchicalTreeDataGridSource<TModel> : NotifyingBase,
             if (_selection != value)
             {
                 if (value?.Source != _items)
+                {
                     throw new InvalidOperationException("Selection source must be set to Items.");
+                }
+
                 _selection = value;
                 _isSelectionSet = true;
                 RaisePropertyChanged();
@@ -88,6 +80,7 @@ public class HierarchicalTreeDataGridSource<TModel> : NotifyingBase,
 
     public ITreeDataGridCellSelectionModel<TModel>? CellSelection => Selection as ITreeDataGridCellSelectionModel<TModel>;
     public ITreeDataGridRowSelectionModel<TModel>? RowSelection => Selection as ITreeDataGridRowSelectionModel<TModel>;
+    public bool IsFiltered => _rows?.IsFiltered ?? false;
     public bool IsHierarchical => true;
     public bool IsSorted => _comparison is not null;
 
@@ -99,10 +92,37 @@ public class HierarchicalTreeDataGridSource<TModel> : NotifyingBase,
     public event EventHandler<RowEventArgs<HierarchicalRow<TModel>>>? RowCollapsed;
     public event Action? Sorted;
 
+    public HierarchicalTreeDataGridSource(TModel item)
+    : this([item]) { }
+
+    public HierarchicalTreeDataGridSource(IEnumerable<TModel> items)
+    {
+        _items = items;
+        _itemsView = TreeDataGridItemsSourceView<TModel>.GetOrCreate(items);
+        Columns = [];
+        Columns.CollectionChanged += OnColumnsCollectionChanged;
+    }
+
+    public void ClearSort(IColumn column)
+    {
+        if (column == _sortedColumn)
+        {
+            Sort(null);
+            column.SortDirection = null;
+            Sorted?.Invoke();
+        }
+    }
+
     public void Dispose()
     {
         _rows?.Dispose();
         GC.SuppressFinalize(this);
+    }
+
+    public void RefreshFilter()
+    {
+        GetOrCreateRows().RefreshFilter();
+        Sorted?.Invoke();
     }
 
     /// <summary>
@@ -154,60 +174,59 @@ public class HierarchicalTreeDataGridSource<TModel> : NotifyingBase,
         GetOrCreateRows().ExpandCollapseRecursive(predicate, row);
     }
 
-    public bool TryGetModelAt(IndexPath index, [NotNullWhen(true)] out TModel? result)
-    {
-        if (_expanderColumn is null)
-            throw new InvalidOperationException("No expander column defined.");
+    public void Filter(Func<TModel, bool>? filter)
+	{
+		GetOrCreateRows().Filter(filter);
+	}
 
-        var items = (IEnumerable<TModel>?)Items;
-        var count = index.Count;
+	public bool TryGetModelAt(IndexPath index, [NotNullWhen(true)] out TModel? result)
+	{
+		if (_expanderColumn is null)
+		{
+			throw new InvalidOperationException("No expander column defined.");
+		}
+		
+		var items = Items;
+		int count = index.Count;
 
-        for (var depth = 0; depth < count; ++depth)
-        {
-            var i = index[depth];
+		for (int depth = 0; depth < count; depth++)
+		{
+			var i = index[depth];
+			if (!(i < items?.Count()))
+			{
+				break;
+			}
 
-            if (i < items?.Count())
-            {
-                var e = items.ElementAt(i)!;
+			var item = items.ElementAt(i);
+			if (depth < count - 1)
+			{
+				items = _expanderColumn.GetChildModels(item);
+				continue;
+			}
+			result = item;
+			return true;
+		}
 
-                if (depth < count - 1)
-                {
-                    items = _expanderColumn.GetChildModels(e);
-                }
-                else
-                {
-                    result = e;
-                    return true;
-                }
-            }
-            else
-            {
-                break;
-            }
-        }
-
-        result = default;
-        return false;
-    }
+		result = null;
+		return false;
+	}
 
     public void Sort(Comparison<TModel?>? comparison)
     {
         _comparison = comparison;
         _rows?.Sort(_comparison);
-        Sorted?.Invoke();
+        // Sorted?.Invoke();
     }
 
-    public void Unsort()
-    {
-        Sort(null);
+    // public void Unsort()
+    // {
+    //     Sort(null);
 
-        foreach (var column in Columns)
-        {
-            column.SortDirection = null;
-        }
-    }
-
-    IEnumerable<object>? ITreeDataGridSource.GetModelChildren(object model) => GetModelChildren((TModel)model);
+    //     foreach (var column in Columns)
+    //     {
+    //         column.SortDirection = null;
+    //     }
+    // }
 
     public bool SortBy(IColumn? column, ListSortDirection direction)
     {
@@ -218,25 +237,76 @@ public class HierarchicalTreeDataGridSource<TModel> : NotifyingBase,
             Sort(comparison);
             Sorted?.Invoke();
             foreach (var c in Columns)
-                c.SortDirection = c == column ? (ListSortDirection?)direction : null;
+            {
+                c.SortDirection = c == column ? direction : null;
+            }
+            _sortedColumn = column;
             return true;
         }
 
         return false;
     }
 
-    void ITreeDataGridSource.DragDropRows(
-        ITreeDataGridSource source,
-        IEnumerable<IndexPath> indexes,
-        IndexPath targetIndex,
-        TreeDataGridRowDropPosition position,
-        DragDropEffects effects)
+    void ITreeDataGridSource.DragDropRows(ITreeDataGridSource source, IEnumerable<IndexPath> indexes, IndexPath targetIndex, TreeDataGridRowDropPosition position, DragDropEffects effects)
     {
+        if (effects is not DragDropEffects.Move)
+        {
+            throw new NotSupportedException("Only move is currently supported for drag/drop.");
+        }
+
+        if (IsSorted)
+        {
+            throw new NotSupportedException("Drag/drop is not supported on sorted data.");
+        }
+
+        IList<TModel> targetItems;
+        int ti;
+
+        if (position is TreeDataGridRowDropPosition.Inside)
+        {
+            targetItems = GetItems(targetIndex);
+            ti = targetItems.Count;
+        }
+        else
+        {
+            targetItems = GetItems(targetIndex[..^1]);
+            ti = targetIndex[^1];
+        }
+
+        if (position is TreeDataGridRowDropPosition.After)
+        {
+            ++ti;
+        }
+
+        var sourceItems = new List<TModel>();
+
+        foreach (var group in indexes.GroupBy(static x => x[..^1]))
+        {
+            var items = GetItems(group.Key);
+
+            foreach (var i in group.Select(static x => x[^1]).OrderByDescending(static x => x))
+            {
+                sourceItems.Add(items[i]);
+
+                if (items == targetItems && i < ti)
+                {
+                    --ti;
+                }
+
+                items.RemoveAt(i);
+            }
+        }
+
+        for (var si = sourceItems.Count - 1; si >= 0; --si)
+        {
+            targetItems.Insert(ti++, sourceItems[si]);
+        }
+
         IList<TModel> GetItems(IndexPath path)
         {
             IEnumerable<TModel>? children;
 
-            if (path.Count == 0)
+            if (path.Count is 0)
             {
                 children = _items;
             }
@@ -254,59 +324,6 @@ public class HierarchicalTreeDataGridSource<TModel> : NotifyingBase,
                 : children as IList<TModel> ??
                 throw new InvalidOperationException("Items does not implement IList<T>.");
         }
-
-        if (effects is not DragDropEffects.Move)
-        {
-            throw new NotSupportedException("Only move is currently supported for drag/drop.");
-        }
-
-        if (IsSorted)
-        {
-            throw new NotSupportedException("Drag/drop is not supported on sorted data.");
-        }
-
-        IList<TModel> targetItems;
-        int ti;
-
-        if (position == TreeDataGridRowDropPosition.Inside)
-        {
-            targetItems = GetItems(targetIndex);
-            ti = targetItems.Count;
-        }
-        else
-        {
-            targetItems = GetItems(targetIndex[..^1]);
-            ti = targetIndex[^1];
-        }
-
-        if (position == TreeDataGridRowDropPosition.After)
-        {
-            ++ti;
-        }
-
-        var sourceItems = new List<TModel>();
-
-        foreach (var g in indexes.GroupBy(x => x[..^1]))
-        {
-            var items = GetItems(g.Key);
-
-            foreach (var i in g.Select(x => x[^1]).OrderByDescending(x => x))
-            {
-                sourceItems.Add(items[i]);
-
-                if (items == targetItems && i < ti)
-                {
-                    --ti;
-                }
-
-                items.RemoveAt(i);
-            }
-        }
-
-        for (var si = sourceItems.Count - 1; si >= 0; --si)
-        {
-            targetItems.Insert(ti++, sourceItems[si]);
-        }
     }
 
     void IExpanderRowController<TModel>.OnBeginExpandCollapse(IExpanderRow<TModel> row)
@@ -314,9 +331,13 @@ public class HierarchicalTreeDataGridSource<TModel> : NotifyingBase,
         if (row is HierarchicalRow<TModel> r)
         {
             if (!row.IsExpanded)
+            {
                 RowExpanding?.Invoke(this, RowEventArgs.Create(r));
+            }
             else
+            {
                 RowCollapsing?.Invoke(this, RowEventArgs.Create(r));
+            }
         }
     }
 
@@ -325,17 +346,19 @@ public class HierarchicalTreeDataGridSource<TModel> : NotifyingBase,
         if (row is HierarchicalRow<TModel> r)
         {
             if (row.IsExpanded)
+            {
                 RowExpanded?.Invoke(this, RowEventArgs.Create(r));
+            }
             else
+            {
                 RowCollapsed?.Invoke(this, RowEventArgs.Create(r));
+            }
         }
     }
 
-    void IExpanderRowController<TModel>.OnChildCollectionChanged(
-        IExpanderRow<TModel> row,
-        NotifyCollectionChangedEventArgs e)
-    {
-    }
+    void IExpanderRowController<TModel>.OnChildCollectionChanged(IExpanderRow<TModel> row, NotifyCollectionChangedEventArgs e) { }
+
+    IEnumerable<object>? ITreeDataGridSource.GetModelChildren(object model) => GetModelChildren((TModel)model);
 
     internal IEnumerable<TModel>? GetModelChildren(TModel model)
     {
@@ -354,10 +377,14 @@ public class HierarchicalTreeDataGridSource<TModel> : NotifyingBase,
     {
         if (_rows is null)
         {
-            if (Columns.Count == 0)
+            if (Columns.Count is 0)
+            {
                 throw new InvalidOperationException("No columns defined.");
+            }
             if (_expanderColumn is null)
+            {
                 throw new InvalidOperationException("No expander column defined.");
+            }
             _rows = new HierarchicalRows<TModel>(this, _itemsView, _expanderColumn, _comparison);
         }
 
@@ -398,20 +425,18 @@ public class HierarchicalTreeDataGridSource<TModel> : NotifyingBase,
 
     private void HandleAdd(IList? newItems)
     {
-        if (newItems is not null)
-        {
-            foreach (var i in newItems)
-            {
-                if (i is IExpanderColumn<TModel> expander)
-                {
-                    if (_expanderColumn is not null)
-                    {
-                        throw new InvalidOperationException("Only one expander column is allowed.");
-                    }
+        if (newItems is null) return;
 
-                    _expanderColumn = expander;
-                    break;
+        foreach (var item in newItems)
+        {
+            if (item is IExpanderColumn<TModel> expanderColumn)
+            {
+                if (_expanderColumn is not null)
+                {
+                    throw new InvalidOperationException("Only one expander column is allowed.");
                 }
+                _expanderColumn = expanderColumn;
+                break;
             }
         }
     }

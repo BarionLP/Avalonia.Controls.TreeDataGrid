@@ -24,6 +24,7 @@ public class FlatTreeDataGridSource<TModel>(IEnumerable<TModel> items) : Notifyi
     private IComparer<TModel>? _comparer;
     private ITreeDataGridSelection? _selection;
     private bool _isSelectionSet;
+    private IColumn? sortedColumn;
 
     public ColumnList<TModel> Columns { get; } = [];
     public IRows Rows => _rows ??= CreateRows();
@@ -39,8 +40,7 @@ public class FlatTreeDataGridSource<TModel>(IEnumerable<TModel> items) : Notifyi
                 _items = value;
                 _itemsView = TreeDataGridItemsSourceView<TModel>.GetOrCreate(value);
                 _rows?.SetItems(_itemsView);
-                if (_selection is object)
-                    _selection.Source = value;
+                _selection?.Source = value;
                 RaisePropertyChanged();
             }
         }
@@ -51,7 +51,9 @@ public class FlatTreeDataGridSource<TModel>(IEnumerable<TModel> items) : Notifyi
         get
         {
             if (_selection == null && !_isSelectionSet)
+            {
                 _selection = new TreeDataGridRowSelectionModel<TModel>(this);
+            }
             return _selection;
         }
         set
@@ -59,7 +61,9 @@ public class FlatTreeDataGridSource<TModel>(IEnumerable<TModel> items) : Notifyi
             if (_selection != value)
             {
                 if (value?.Source != _items)
+                {
                     throw new InvalidOperationException("Selection source must be set to Items.");
+                }
                 _selection = value;
                 _isSelectionSet = true;
                 RaisePropertyChanged();
@@ -71,15 +75,51 @@ public class FlatTreeDataGridSource<TModel>(IEnumerable<TModel> items) : Notifyi
 
     public ITreeDataGridCellSelectionModel<TModel>? CellSelection => Selection as ITreeDataGridCellSelectionModel<TModel>;
     public ITreeDataGridRowSelectionModel<TModel>? RowSelection => Selection as ITreeDataGridRowSelectionModel<TModel>;
+
+    public bool IsFiltered => _rows?.IsFiltered ?? false;
     public bool IsHierarchical => false;
     public bool IsSorted => _comparer is not null;
 
     public event Action? Sorted;
 
+    public void ClearSort(IColumn column)
+    {
+        if (column == sortedColumn)
+        {
+            _comparer = null;
+            _rows?.Sort(_comparer);
+            column.SortDirection = null;
+            Sorted?.Invoke();
+        }
+    }
+
+    /// <inheritdoc />
     public void Dispose()
     {
         _rows?.Dispose();
         GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Filters the rows according to a predicate.
+    /// </summary>
+    /// <param name="filter">The filter predicate, or null to clear the filter.</param>
+    public void Filter(Func<TModel, bool>? filter)
+    {
+        (_rows ??= CreateRows()).Filter(filter);
+    }
+
+    /// <summary>
+    /// Refreshes the current filter applied to the collection.
+    /// </summary>
+    /// <remarks>
+    /// Call this method if the filter predicate depends on external state which has changed,
+    /// to re-apply the filter to the collection.
+    /// </remarks>
+    public void RefreshFilter()
+    {
+        _rows?.RefreshFilter();
+        this.Sorted?.Invoke();
     }
 
     void ITreeDataGridSource.DragDropRows(
@@ -89,79 +129,79 @@ public class FlatTreeDataGridSource<TModel>(IEnumerable<TModel> items) : Notifyi
         TreeDataGridRowDropPosition position,
         DragDropEffects effects)
     {
-        if (effects != DragDropEffects.Move)
+        if (effects is not DragDropEffects.Move)
+        {
             throw new NotSupportedException("Only move is currently supported for drag/drop.");
+        }
         if (IsSorted)
+        {
             throw new NotSupportedException("Drag/drop is not supported on sorted data.");
-        if (position == TreeDataGridRowDropPosition.Inside)
+        }
+        if (position is TreeDataGridRowDropPosition.Inside)
+        {
             throw new ArgumentException("Invalid drop position.", nameof(position));
-        if (indexes.Any(x => x.Count != 1))
+        }
+        if (indexes.Any(x => x.Count is not 1))
+        {
             throw new ArgumentException("Invalid source index.", nameof(indexes));
+        }
         if (targetIndex.Count != 1)
+        {
             throw new ArgumentException("Invalid target index.", nameof(targetIndex));
+        }
         if (_items is not IList<TModel> items)
+        {
             throw new InvalidOperationException("Items does not implement IList<T>.");
-
-        if (position == TreeDataGridRowDropPosition.None)
+        }
+        if (position is TreeDataGridRowDropPosition.None)
+        {
             return;
-
+        }
         var ti = targetIndex[0];
-
         if (position == TreeDataGridRowDropPosition.After)
-            ++ti;
-
+        {
+            ti++;
+        }
         var sourceItems = new List<TModel>();
-
         foreach (var src in indexes.OrderByDescending(x => x))
         {
             var i = src[0];
             sourceItems.Add(items[i]);
             items.RemoveAt(i);
-
             if (i < ti)
-                --ti;
+            {
+                ti--;
+            }
         }
-
-        for (var si = sourceItems.Count - 1; si >= 0; --si)
+        for (var si = sourceItems.Count - 1; si >= 0; si--)
         {
             items.Insert(ti++, sourceItems[si]);
         }
     }
-
     public bool SortBy(IColumn? column, ListSortDirection direction)
     {
         if (column is IColumn<TModel> typedColumn && Columns.Contains(typedColumn))
         {
-            var comparer = typedColumn.GetComparison(direction);
-            if (comparer is null) return false;
+            var comparison = typedColumn.GetComparison(direction);
+            if (comparison is null) return false;
 
-            Sort(comparer);
+            Sort(comparison);
 
             foreach (var c in Columns)
             {
                 c.SortDirection = c == column ? direction : null;
             }
-
+            sortedColumn = column;
             return true;
         }
         return false;
     }
 
-    public void Sort(Comparison<TModel?>? comparison)
+    private void Sort(Comparison<TModel?> comparison)
     {
-        _comparer = comparison is not null ? new FuncComparer<TModel>(comparison) : null;
+        _comparer = new FuncComparer<TModel>(comparison);
         _rows?.Sort(_comparer);
         Sorted?.Invoke();
-    }
-
-    public void Unsort()
-    {
-        Sort(null);
-
-        foreach (var column in Columns)
-        {
-            column.SortDirection = null;
-        }
     }
 
     IEnumerable<object> ITreeDataGridSource.GetModelChildren(object model) => [];
