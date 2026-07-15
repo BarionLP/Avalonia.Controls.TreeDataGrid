@@ -106,4 +106,6 @@ public interface ITreeDataGridSource<TModel> : ITreeDataGridSource
     // /// A <see cref="Comparison{TModel}"/> delegate that defines the item order.
     // /// </param>
     // void Sort(Comparison<TModel?>? comparison);
+
+    public void Filter(Func<TModel, bool>? filter);
 }
