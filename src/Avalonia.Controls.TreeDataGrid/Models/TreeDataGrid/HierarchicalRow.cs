@@ -133,9 +133,14 @@ public class HierarchicalRow<TModel> : NotifyingBase,
 
         _childRows.Sort(comparison);
 
-        foreach (var row in _childRows)
+        // Propagate to all materialized rows, including those hidden by the current filter,
+        // so that their subtrees are correct when they become visible again.
+        if (_childRows.UnfilteredRows is { } rows)
         {
-            row.SortChildren(comparison);
+            foreach (var row in rows)
+            {
+                row.SortChildren(comparison);
+            }
         }
     }
 

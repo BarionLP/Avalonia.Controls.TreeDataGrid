@@ -254,11 +254,13 @@ public abstract class SortableRowsBase<TModel, TRow> : ReadOnlyListBase<TRow>, I
 
         void Add(int index, IList items)
         {
+            var rows = new List<TRow>(items.Count);
             foreach (TModel item in items)
             {
-                _unsortedRows.Insert(index, CreateRow(index, item));
-                index++;
+                rows.Add(CreateRow(index + rows.Count, item));
             }
+            _unsortedRows.InsertRange(index, rows);
+            index += rows.Count;
             while (index < _unsortedRows.Count)
             {
                 _unsortedRows[index++].UpdateModelIndex(items.Count);
@@ -307,10 +309,12 @@ public abstract class SortableRowsBase<TModel, TRow> : ReadOnlyListBase<TRow>, I
         void Add(int startIndex, int count)
         {
             // Add the new rows to the unsorted rows.
+            var newRows = new List<TRow>(count);
             for (var i = startIndex; i < startIndex + count; ++i)
             {
-                _unsortedRows.Insert(i, CreateRow(i, _items[i]));
+                newRows.Add(CreateRow(i, _items[i]));
             }
+            _unsortedRows.InsertRange(startIndex, newRows);
 
             // Update the indexes of subsequent rows.
             for (var i = startIndex + count; i < _unsortedRows.Count; ++i)

@@ -147,8 +147,21 @@ public class HierarchicalRows<TModel> : ReadOnlyListBase<HierarchicalRow<TModel>
     public void Filter(Func<TModel, bool>? filter)
     {
         _filter = filter;
-        _roots.Filter(filter);
-        FilterChildren(filter);
+        _ignoreCollectionChanges = true;
+
+        try
+        {
+            _roots.Filter(filter);
+            FilterChildren(filter);
+        }
+        finally
+        {
+            _ignoreCollectionChanges = false;
+        }
+
+        _flattenedRows.Clear();
+        InitializeRows();
+        CollectionChanged?.Invoke(this, CollectionExtensions.ResetEvent);
     }
 
     public void SetItems(TreeDataGridItemsSourceView<TModel> items)
@@ -167,15 +180,30 @@ public class HierarchicalRows<TModel> : ReadOnlyListBase<HierarchicalRow<TModel>
     public void Sort(Comparison<TModel>? comparison)
     {
         _comparison = comparison;
-        _roots.Sort(comparison);
+        _ignoreCollectionChanges = true;
+
+        try
+        {
+            _roots.Sort(comparison);
+
+            // Propagate to all materialized rows, including those hidden by the current
+            // filter, so that their subtrees are correct when they become visible again.
+            if (_roots.UnfilteredRows is { } rows)
+            {
+                foreach (var row in rows)
+                {
+                    row.SortChildren(comparison);
+                }
+            }
+        }
+        finally
+        {
+            _ignoreCollectionChanges = false;
+        }
+
         _flattenedRows.Clear();
         InitializeRows();
         CollectionChanged?.Invoke(this, CollectionExtensions.ResetEvent);
-
-        foreach (var row in _roots)
-        {
-            row.SortChildren(comparison);
-        }
     }
 
     public void UnrealizeCell(ICell cell, int rowIndex, int columnIndex)
@@ -185,8 +213,21 @@ public class HierarchicalRows<TModel> : ReadOnlyListBase<HierarchicalRow<TModel>
 
     public void RefreshFilter()
     {
-        _roots.RefreshFilter();
-        RefreshChildrenFilter();
+        _ignoreCollectionChanges = true;
+
+        try
+        {
+            _roots.RefreshFilter();
+            RefreshChildrenFilter();
+        }
+        finally
+        {
+            _ignoreCollectionChanges = false;
+        }
+
+        _flattenedRows.Clear();
+        InitializeRows();
+        CollectionChanged?.Invoke(this, CollectionExtensions.ResetEvent);
     }
 
     public int GetParentRowIndex(IndexPath modelIndex) => ModelIndexToRowIndex(modelIndex[..^1]);
@@ -263,28 +304,23 @@ public class HierarchicalRows<TModel> : ReadOnlyListBase<HierarchicalRow<TModel>
 
     private void InitializeRows()
     {
-        var i = 0;
-
-        foreach (var model in _roots)
+        foreach (var row in _roots)
         {
-            i += AddRowsAndDescendants(i, model);
+            Flatten(row, _flattenedRows);
         }
     }
 
-    private int AddRowsAndDescendants(int index, HierarchicalRow<TModel> row)
+    private static void Flatten(HierarchicalRow<TModel> row, List<HierarchicalRow<TModel>> output)
     {
-        var i = index;
-        _flattenedRows.Insert(i++, row);
+        output.Add(row);
 
         if (row.Children is not null)
         {
             foreach (var childRow in row.Children)
             {
-                i += AddRowsAndDescendants(i, childRow);
+                Flatten(childRow, output);
             }
         }
-
-        return i - index;
     }
 
     private void FilterChildren(Func<TModel, bool>? filter)
@@ -394,21 +430,28 @@ public class HierarchicalRows<TModel> : ReadOnlyListBase<HierarchicalRow<TModel>
             if (items is null)
                 return;
 
-            var start = index;
+            // Flatten into a buffer and insert in one operation so that rows after the
+            // insertion point are only shifted once.
+            var buffer = new List<HierarchicalRow<TModel>>();
 
             foreach (HierarchicalRow<TModel> row in items)
             {
-                index += AddRowsAndDescendants(index, row);
+                Flatten(row, buffer);
             }
 
-            if (raise && index > start)
+            if (buffer.Count == 0)
+                return;
+
+            _flattenedRows.InsertRange(index, buffer);
+
+            if (raise)
             {
                 CollectionChanged?.Invoke(
                     this,
                     new NotifyCollectionChangedEventArgs(
                         NotifyCollectionChangedAction.Add,
-                        new ListSpan(_flattenedRows, start, index - start),
-                        start));
+                        new ListSpan(_flattenedRows, index, buffer.Count),
+                        index));
             }
         }
 

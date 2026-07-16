@@ -1070,6 +1070,32 @@ public class HierarchicalTreeDataGridSourceTests
         }
 
         [Test]
+        public async Task Sorting_Applies_To_Children_Of_Rows_Hidden_By_Filter()
+        {
+            var data = CreateData(2, 3);
+            var target = CreateTarget(data, false);
+
+            target.ExpandAll();
+
+            var visible = AllNodes(data);
+            visible.Remove(data[1]);
+            target.Filter(visible.Contains);
+
+            target.Sort((x, y) => y!.Id - x!.Id);
+
+            visible.Add(data[1]);
+            target.RefreshFilter();
+
+            // The hidden root's children must also be sorted descending by id.
+            var models = target.Rows.Cast<HierarchicalRow<Node>>().Select(x => x.Model).ToList();
+            var index = models.IndexOf(data[1]);
+
+            await Assert.That(models[index + 1]).IsSameReferenceAs(data[1].Children![2]);
+            await Assert.That(models[index + 2]).IsSameReferenceAs(data[1].Children![1]);
+            await Assert.That(models[index + 3]).IsSameReferenceAs(data[1].Children![0]);
+        }
+
+        [Test]
         public async Task Clearing_Filter_Restores_Hidden_Children()
         {
             var data = CreateData(2, 2);
