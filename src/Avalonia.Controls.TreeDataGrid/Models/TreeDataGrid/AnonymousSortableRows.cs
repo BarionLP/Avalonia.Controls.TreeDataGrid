@@ -117,7 +117,12 @@ public sealed class AnonymousSortableRows<TModel> : ReadOnlyListBase<IRow<TModel
         {
             return i >= 0 && i < _items.Count ? modelIndex[0] : -1;
         }
-        return SortHelper<int>.BinarySearch(_sortedIndexes, i, CompareItemsByIndex);
+
+        // When no comparer is set (filter only), the indexes are sorted in ascending model
+        // index order, so search using the default integer comparison.
+        return _comparer is null
+            ? SortHelper<int>.BinarySearch(_sortedIndexes, i)
+            : SortHelper<int>.BinarySearch(_sortedIndexes, i, CompareItemsByIndex);
     }
 
     public IndexPath RowIndexToModelIndex(int rowIndex) => _sortedIndexes?[rowIndex] ?? rowIndex;
@@ -231,7 +236,9 @@ public sealed class AnonymousSortableRows<TModel> : ReadOnlyListBase<IRow<TModel
                 var myindex = startIndex + i;
                 if (_filter is null || FilterByIndex(myindex))
                 {
-                    var index = SortHelper<int>.BinarySearch(_sortedIndexes, myindex, CompareItemsByIndex);
+                    var index = _comparer is null
+                        ? SortHelper<int>.BinarySearch(_sortedIndexes, myindex)
+                        : SortHelper<int>.BinarySearch(_sortedIndexes, myindex, CompareItemsByIndex);
                     if (index < 0)
                     {
                         index = ~index;

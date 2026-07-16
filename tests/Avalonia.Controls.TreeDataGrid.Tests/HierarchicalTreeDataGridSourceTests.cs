@@ -51,6 +51,27 @@ public class HierarchicalTreeDataGridSourceTests
         }
 
         [Test]
+        public async Task Replacing_Expanded_Row_Detaches_Old_Row_From_Child_Models()
+        {
+            var data = CreateData(2, 2);
+            var target = CreateTarget(data, false);
+
+            target.Expand(new IndexPath(0));
+
+            await Assert.That(target.Rows.Count).IsEqualTo(4);
+
+            var oldNode = data[0];
+            data[0] = new Node { Id = 100, Caption = "Replacement", Children = [] };
+
+            await Assert.That(target.Rows.Count).IsEqualTo(2);
+
+            // Changing the old (replaced) node's children must not affect the grid.
+            oldNode.Children!.Add(new Node { Id = 101, Caption = "New Child", Children = [] });
+
+            await Assert.That(target.Rows.Count).IsEqualTo(2);
+        }
+
+        [Test]
         [Arguments(false)]
         [Arguments(true)]
         public async Task Supports_Adding_Root_Row(bool sorted)
@@ -955,6 +976,97 @@ public class HierarchicalTreeDataGridSourceTests
 
             // Root 0, its single visible child, and root 1.
             await Assert.That(target.Rows.Count).IsEqualTo(3);
+        }
+
+        [Test]
+        public async Task Adding_Item_To_Filtered_Unsorted_Source_Inserts_Row_At_Correct_Position()
+        {
+            var data = CreateData(3, 1);
+            var target = CreateTarget(data, false);
+
+            await Assert.That(target.Rows.Count).IsEqualTo(3);
+
+            var visible = AllNodes(data);
+            target.Filter(visible.Contains);
+
+            var newNode = new Node { Id = 100, Caption = "New Node", Children = [] };
+            visible.Add(newNode);
+            data.Insert(1, newNode);
+
+            await Assert.That(target.Rows.Count).IsEqualTo(4);
+            await Assert.That(((HierarchicalRow<Node>)target.Rows[1]).Model).IsSameReferenceAs(newNode);
+            await Assert.That(((HierarchicalRow<Node>)target.Rows[1]).ModelIndexPath).IsEqualTo(new IndexPath(1));
+        }
+
+        [Test]
+        public async Task Removing_Item_Updates_Model_Indexes_Of_Rows_Hidden_By_Filter()
+        {
+            var data = CreateData(4, 1);
+            var target = CreateTarget(data, false);
+
+            await Assert.That(target.Rows.Count).IsEqualTo(4);
+
+            var visible = AllNodes(data);
+            visible.Remove(data[3]);
+            target.Filter(visible.Contains);
+
+            await Assert.That(target.Rows.Count).IsEqualTo(3);
+
+            data.RemoveAt(0);
+
+            // The previously hidden row should now be at model index 2; make it visible again.
+            visible.Add(data[2]);
+            target.RefreshFilter();
+
+            await Assert.That(target.Rows.Count).IsEqualTo(3);
+
+            var row = (HierarchicalRow<Node>)target.Rows[2];
+            await Assert.That(row.Model).IsSameReferenceAs(data[2]);
+            await Assert.That(row.ModelIndexPath).IsEqualTo(new IndexPath(2));
+        }
+
+        [Test]
+        public async Task RefreshFilter_Restores_Expander_When_Children_Become_Visible()
+        {
+            var data = CreateData(1, 2);
+            var target = CreateTarget(data, false);
+
+            var visible = AllNodes(data);
+            visible.Remove(data[0].Children![0]);
+            visible.Remove(data[0].Children![1]);
+            target.Filter(visible.Contains);
+
+            var row = (HierarchicalRow<Node>)target.Rows[0];
+            row.IsExpanded = true;
+
+            await Assert.That(row.IsExpanded).IsFalse();
+            await Assert.That(row.ShowExpander).IsFalse();
+
+            visible.Add(data[0].Children![0]);
+            target.RefreshFilter();
+
+            await Assert.That(row.ShowExpander).IsTrue();
+
+            row.IsExpanded = true;
+
+            await Assert.That(target.Rows.Count).IsEqualTo(2);
+        }
+
+        [Test]
+        public async Task Expanding_Row_With_All_Children_Filtered_Out_Does_Not_Expand()
+        {
+            var data = CreateData(1, 2);
+            var target = CreateTarget(data, false);
+
+            var visible = AllNodes(data);
+            visible.Remove(data[0].Children![0]);
+            visible.Remove(data[0].Children![1]);
+            target.Filter(visible.Contains);
+
+            target.Expand(new IndexPath(0));
+
+            await Assert.That(target.Rows.Count).IsEqualTo(1);
+            await Assert.That(((HierarchicalRow<Node>)target.Rows[0]).IsExpanded).IsFalse();
         }
 
         [Test]

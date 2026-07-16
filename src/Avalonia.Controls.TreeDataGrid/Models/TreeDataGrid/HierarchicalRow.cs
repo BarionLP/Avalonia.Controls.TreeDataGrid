@@ -158,6 +158,8 @@ public class HierarchicalRow<TModel> : NotifyingBase,
                 row.FilterChildren(filter);
             }
         }
+
+        RestoreShowExpander();
     }
 
     internal void RefreshFilter()
@@ -173,6 +175,20 @@ public class HierarchicalRow<TModel> : NotifyingBase,
             {
                 row.RefreshFilter();
             }
+        }
+
+        RestoreShowExpander();
+    }
+
+    /// <summary>
+    /// Re-shows the expander if it was hidden because all children were filtered out and
+    /// some children are visible again after a filter change.
+    /// </summary>
+    private void RestoreShowExpander()
+    {
+        if (_showExpander == false && _childRows!.Count > 0)
+        {
+            ShowExpander = true;
         }
     }
 
@@ -196,14 +212,9 @@ public class HierarchicalRow<TModel> : NotifyingBase,
             _childRows = new ChildRows(this, TreeDataGridItemsSourceView<TModel>.GetOrCreate(childModels), _comparison);
             if (_filter is not null)
             {
+                // Rows created by ChildRows inherit the filter via CreateRow, so it only
+                // needs to be set on the collection itself here.
                 _childRows.Filter(_filter);
-
-                // Enumerating materializes the rows so that the filtered count is used in the
-                // expansion check below.
-                foreach (var row in _childRows)
-                {
-                    row.FilterChildren(_filter);
-                }
             }
         }
 

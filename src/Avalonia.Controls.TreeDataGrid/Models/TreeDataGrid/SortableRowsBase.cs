@@ -21,7 +21,19 @@ public abstract class SortableRowsBase<TModel, TRow> : ReadOnlyListBase<TRow>, I
     private List<TRow>? _unsortedRows;
     private List<int>? _sortedIndexes;
 
-    public override int Count => _sortedIndexes?.Count ?? _unsortedRows?.Count ?? _items.Count;
+    public override int Count
+    {
+        get
+        {
+            // When a filter is set the rows must be materialized for the filtered count
+            // to be known; otherwise the unfiltered item count would be reported.
+            if (_unsortedRows is null && _filter is not null)
+            {
+                GetOrCreateRows();
+            }
+            return _sortedIndexes?.Count ?? _unsortedRows?.Count ?? _items.Count;
+        }
+    }
     public bool IsFiltered => _filter is not null;
 
     /// <summary>
@@ -113,7 +125,11 @@ public abstract class SortableRowsBase<TModel, TRow> : ReadOnlyListBase<TRow>, I
             return modelIndex >= 0 && modelIndex < _items.Count ? modelIndex : -1;
         }
 
-        return SortHelper<int>.BinarySearch(_sortedIndexes, modelIndex, CompareItemsByIndex);
+        // When no comparison is set (filter only), the indexes are sorted in ascending model
+        // index order, so search using the default integer comparison.
+        return _comparison is null
+            ? SortHelper<int>.BinarySearch(_sortedIndexes, modelIndex)
+            : SortHelper<int>.BinarySearch(_sortedIndexes, modelIndex, CompareItemsByIndex);
     }
 
     protected int RowIndexToModelIndex(int rowIndex) => _sortedIndexes?[rowIndex] ?? rowIndex;
@@ -207,12 +223,20 @@ public abstract class SortableRowsBase<TModel, TRow> : ReadOnlyListBase<TRow>, I
                 {
                     var oldStartingIndex = e.OldStartingIndex;
                     var count = e.OldItems!.Count;
-                    var oldItems = CollectionChanged is null ? null : _unsortedRows.Slice(oldStartingIndex, count);
+                    var oldRows = _unsortedRows.Slice(oldStartingIndex, count);
                     for (var i = 0; i < count; i++)
                     {
                         _unsortedRows[oldStartingIndex + i] = CreateRow(oldStartingIndex + i, (TModel)e.NewItems![i]!);
                     }
-                    CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace, new ListSpan(_unsortedRows, oldStartingIndex, count), oldItems!, oldStartingIndex));
+                    CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace, new ListSpan(_unsortedRows, oldStartingIndex, count), oldRows, oldStartingIndex));
+
+                    // Dispose the replaced rows after raising the event, so that events
+                    // triggered by disposal don't find stale rows in consumers' state, and
+                    // so that expanded rows stop listening to their child collections.
+                    foreach (var row in oldRows)
+                    {
+                        row.Dispose();
+                    }
                     break;
                 }
             case NotifyCollectionChangedAction.Move:
@@ -311,7 +335,12 @@ public abstract class SortableRowsBase<TModel, TRow> : ReadOnlyListBase<TRow>, I
 
                 if (_filter is null || _filter(_items[myIndex]))
                 {
-                    var index = _comparison is null ? _sortedIndexes.Count : SortHelper<int>.BinarySearch(_sortedIndexes, myIndex, CompareItemsByIndex);
+                    // When no comparison is set (filter only), the indexes are sorted in
+                    // ascending model index order, so search using the default integer
+                    // comparison to find the insert position.
+                    var index = _comparison is null
+                        ? SortHelper<int>.BinarySearch(_sortedIndexes, myIndex)
+                        : SortHelper<int>.BinarySearch(_sortedIndexes, myIndex, CompareItemsByIndex);
                     if (index < 0)
                     {
                         index = ~index;
@@ -326,15 +355,17 @@ public abstract class SortableRowsBase<TModel, TRow> : ReadOnlyListBase<TRow>, I
         {
             var count = removed.Count;
             var endIndex = startIndex + count;
-
-            // Dispose the removed rows.
-            for (var i = 0; i < count; ++i)
-            {
-                _unsortedRows[startIndex + i].Dispose();
-            }
+            var removedRows = _unsortedRows.Slice(startIndex, count);
 
             // Remove the rows from the unsorted rows.
             _unsortedRows.RemoveRange(startIndex, count);
+
+            // Update the model indexes of all subsequent rows, including those currently
+            // hidden by the filter.
+            for (var i = startIndex; i < _unsortedRows.Count; ++i)
+            {
+                _unsortedRows[i].UpdateModelIndex(-count);
+            }
 
             // Iterate the sorted indexes, raising a collection changed event for the
             // items removed, and updating the indexes of the subsequent items.
@@ -348,15 +379,21 @@ public abstract class SortableRowsBase<TModel, TRow> : ReadOnlyListBase<TRow>, I
                         this,
                         new NotifyCollectionChangedEventArgs(
                             NotifyCollectionChangedAction.Remove,
-                            (TModel)removed[ix - startIndex]!,
+                            removedRows[ix - startIndex],
                             i));
                     --i;
                 }
                 else if (ix >= endIndex)
                 {
                     _sortedIndexes[i] = ix - count;
-                    _unsortedRows[_sortedIndexes[i]].UpdateModelIndex(-removed.Count);
                 }
+            }
+
+            // Dispose the removed rows after raising events, so that events triggered by
+            // disposal don't find stale rows in consumers' state.
+            foreach (var row in removedRows)
+            {
+                row.Dispose();
             }
         }
     }

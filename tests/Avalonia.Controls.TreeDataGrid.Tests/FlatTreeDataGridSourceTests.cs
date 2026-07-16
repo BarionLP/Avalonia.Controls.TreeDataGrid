@@ -220,6 +220,36 @@ public class FlatTreeDataGridSourceTests
         }
 
         [Test]
+        public async Task ModelIndexToRowIndex_Works_When_Filtered_But_Not_Sorted()
+        {
+            var data = CreateData();
+            var target = CreateTarget(data);
+
+            target.Filter(x => x.Id % 2 == 0);
+
+            // Visible model indexes are [0, 2, 4, 6, 8].
+            await Assert.That(target.Rows.ModelIndexToRowIndex(new IndexPath(4))).IsEqualTo(2);
+            await Assert.That(target.Rows.ModelIndexToRowIndex(new IndexPath(3)) < 0).IsTrue();
+        }
+
+        [Test]
+        public async Task Supports_Adding_Row_When_Filtered_But_Not_Sorted()
+        {
+            var data = CreateData();
+            var target = CreateTarget(data);
+
+            target.Filter(x => x.Id % 2 == 0);
+
+            await Assert.That(target.Rows.Count).IsEqualTo(5);
+
+            data.Insert(3, new Row { Id = 12, Caption = "New Row" });
+
+            await Assert.That(target.Rows.Count).IsEqualTo(6);
+            await Assert.That(((IRow<Row>)target.Rows[2]).Model.Id).IsEqualTo(12);
+            await Assert.That(((IRow<Row>)target.Rows[3]).Model.Id).IsEqualTo(4);
+        }
+
+        [Test]
         public async Task Clearing_Filter_Raises_Reset_And_Restores_Rows()
         {
             var data = CreateData();
