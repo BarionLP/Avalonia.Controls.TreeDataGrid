@@ -104,6 +104,7 @@ public sealed class AnonymousSortableRows<TModel> : ReadOnlyListBase<IRow<TModel
         {
             _filter = filter;
             RebuildSortedIndexes();
+            CollectionChanged?.Invoke(this, CollectionExtensions.ResetEvent);
         }
     }
 
@@ -125,6 +126,7 @@ public sealed class AnonymousSortableRows<TModel> : ReadOnlyListBase<IRow<TModel
     {
         _comparer = comparer;
         RebuildSortedIndexes();
+        CollectionChanged?.Invoke(this, CollectionExtensions.ResetEvent);
     }
 
     public void UnrealizeCell(ICell cell, int columnIndex, int rowIndex)
@@ -135,6 +137,7 @@ public sealed class AnonymousSortableRows<TModel> : ReadOnlyListBase<IRow<TModel
     public void RefreshFilter()
     {
         RebuildSortedIndexes();
+        CollectionChanged?.Invoke(this, CollectionExtensions.ResetEvent);
     }
 
     IEnumerator<IRow> IEnumerable<IRow>.GetEnumerator() => GetEnumerator();

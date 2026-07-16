@@ -168,6 +168,81 @@ public class FlatTreeDataGridSourceTests
         await Assert.That(raised).IsEqualTo(1);
     }
 
+    public class Filtered
+    {
+        [Test]
+        public async Task Filter_Raises_Reset_And_Filters_Rows()
+        {
+            var data = CreateData();
+            var target = CreateTarget(data);
+            var raised = 0;
+
+            await Assert.That(target.Rows.Count).IsEqualTo(10);
+
+            target.Rows.CollectionChanged += (s, e) =>
+            {
+                if (e.Action == NotifyCollectionChangedAction.Reset)
+                    ++raised;
+            };
+
+            target.Filter(x => x.Id % 2 == 0);
+
+            await Assert.That(raised).IsEqualTo(1);
+            await Assert.That(target.Rows.Count).IsEqualTo(5);
+            await Assert.That(((IRow<Row>)target.Rows[1]).Model.Id).IsEqualTo(2);
+        }
+
+        [Test]
+        public async Task RefreshFilter_Raises_Reset_And_Reapplies_Filter()
+        {
+            var data = CreateData();
+            var target = CreateTarget(data);
+            var visible = new HashSet<Row>(data.Where(x => x.Id < 5));
+            var raised = 0;
+
+            target.Filter(visible.Contains);
+
+            await Assert.That(target.Rows.Count).IsEqualTo(5);
+
+            target.Rows.CollectionChanged += (s, e) =>
+            {
+                if (e.Action == NotifyCollectionChangedAction.Reset)
+                    ++raised;
+            };
+
+            visible.Remove(data[0]);
+            visible.Add(data[7]);
+            target.RefreshFilter();
+
+            await Assert.That(raised).IsEqualTo(1);
+            await Assert.That(target.Rows.Count).IsEqualTo(5);
+            await Assert.That(((IRow<Row>)target.Rows[0]).Model.Id).IsEqualTo(1);
+        }
+
+        [Test]
+        public async Task Clearing_Filter_Raises_Reset_And_Restores_Rows()
+        {
+            var data = CreateData();
+            var target = CreateTarget(data);
+            var raised = 0;
+
+            target.Filter(x => x.Id % 2 == 0);
+
+            await Assert.That(target.Rows.Count).IsEqualTo(5);
+
+            target.Rows.CollectionChanged += (s, e) =>
+            {
+                if (e.Action == NotifyCollectionChangedAction.Reset)
+                    ++raised;
+            };
+
+            target.Filter(null);
+
+            await Assert.That(raised).IsEqualTo(1);
+            await AssertRows(target.Rows, data);
+        }
+    }
+
     public class Sorted
     {
         [Test]

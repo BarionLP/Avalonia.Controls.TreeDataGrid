@@ -147,9 +147,16 @@ public class HierarchicalRow<TModel> : NotifyingBase,
             return;
         }
         _childRows.Filter(filter);
-        foreach (var row in _childRows)
+
+        // Propagate to all materialized rows, not just the currently visible ones: rows hidden
+        // by the filter must still receive it so that their subtrees are correct when a later
+        // RefreshFilter makes them visible again.
+        if (_childRows.UnfilteredRows is { } rows)
         {
-            row.FilterChildren(filter);
+            foreach (var row in rows)
+            {
+                row.FilterChildren(filter);
+            }
         }
     }
 
@@ -160,9 +167,12 @@ public class HierarchicalRow<TModel> : NotifyingBase,
             return;
         }
         _childRows.RefreshFilter();
-        foreach (var row in _childRows)
+        if (_childRows.UnfilteredRows is { } rows)
         {
-            row.RefreshFilter();
+            foreach (var row in rows)
+            {
+                row.RefreshFilter();
+            }
         }
     }
 
@@ -187,6 +197,9 @@ public class HierarchicalRow<TModel> : NotifyingBase,
             if (_filter is not null)
             {
                 _childRows.Filter(_filter);
+
+                // Enumerating materializes the rows so that the filtered count is used in the
+                // expansion check below.
                 foreach (var row in _childRows)
                 {
                     row.FilterChildren(_filter);
@@ -237,7 +250,9 @@ public class HierarchicalRow<TModel> : NotifyingBase,
 
         protected override HierarchicalRow<TModel> CreateRow(int modelIndex, TModel model)
         {
-            return new HierarchicalRow<TModel>(_owner._controller, _owner._expanderColumn, _owner.ModelIndexPath.Append(modelIndex), model, _owner._comparison);
+            var row = new HierarchicalRow<TModel>(_owner._controller, _owner._expanderColumn, _owner.ModelIndexPath.Append(modelIndex), model, _owner._comparison);
+            row.FilterChildren(_owner._filter);
+            return row;
         }
 
         private void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)

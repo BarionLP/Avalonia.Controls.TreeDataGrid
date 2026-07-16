@@ -890,6 +890,112 @@ public class HierarchicalTreeDataGridSourceTests
         }
     }
 
+    public class Filtered
+    {
+        [Test]
+        public async Task Filter_Filters_Expanded_Children()
+        {
+            var data = CreateData(2, 2);
+            var target = CreateTarget(data, false);
+
+            target.ExpandAll();
+
+            await Assert.That(target.Rows.Count).IsEqualTo(6);
+
+            var visible = AllNodes(data);
+            visible.Remove(data[0].Children![1]);
+
+            target.Filter(visible.Contains);
+
+            await Assert.That(target.Rows.Count).IsEqualTo(5);
+        }
+
+        [Test]
+        public async Task RefreshFilter_Applies_Filter_To_Children_Of_Previously_Hidden_Row()
+        {
+            var data = CreateData(2, 2);
+            var target = CreateTarget(data, false);
+
+            target.ExpandAll();
+
+            var visible = AllNodes(data);
+            Func<Node, bool> predicate = visible.Contains;
+
+            // Hide the second root; its children remain in the visible set.
+            visible.Remove(data[1]);
+            target.Filter(predicate);
+
+            await Assert.That(target.Rows.Count).IsEqualTo(3);
+
+            // Make the second root visible again, but hide one of its children.
+            visible.Add(data[1]);
+            visible.Remove(data[1].Children![0]);
+            target.RefreshFilter();
+
+            var models = target.Rows.Cast<HierarchicalRow<Node>>().Select(x => x.Model).ToList();
+
+            await Assert.That(target.Rows.Count).IsEqualTo(5);
+            await Assert.That(models.Contains(data[1].Children![1])).IsTrue();
+            await Assert.That(models.Contains(data[1].Children![0])).IsFalse();
+        }
+
+        [Test]
+        public async Task Expanding_Row_After_Filter_Applies_Filter_To_Children()
+        {
+            var data = CreateData(2, 2);
+            var target = CreateTarget(data, false);
+
+            await Assert.That(target.Rows.Count).IsEqualTo(2);
+
+            var visible = AllNodes(data);
+            visible.Remove(data[0].Children![1]);
+            target.Filter(visible.Contains);
+
+            target.Expand(new IndexPath(0));
+
+            // Root 0, its single visible child, and root 1.
+            await Assert.That(target.Rows.Count).IsEqualTo(3);
+        }
+
+        [Test]
+        public async Task Clearing_Filter_Restores_Hidden_Children()
+        {
+            var data = CreateData(2, 2);
+            var target = CreateTarget(data, false);
+
+            target.ExpandAll();
+
+            var visible = AllNodes(data);
+            visible.Remove(data[1]);
+            visible.Remove(data[0].Children![0]);
+            target.Filter(visible.Contains);
+
+            await Assert.That(target.Rows.Count).IsEqualTo(2);
+
+            target.Filter(null);
+
+            await Assert.That(target.Rows.Count).IsEqualTo(6);
+        }
+
+        private static HashSet<Node> AllNodes(IEnumerable<Node> data)
+        {
+            var result = new HashSet<Node>();
+
+            void Add(IEnumerable<Node> nodes)
+            {
+                foreach (var node in nodes)
+                {
+                    result.Add(node);
+                    if (node.Children is not null)
+                        Add(node.Children);
+                }
+            }
+
+            Add(data);
+            return result;
+        }
+    }
+
     private static AvaloniaListDebug<Node> CreateData(int count = 5, int childCount = 5)
     {
         var id = 0;

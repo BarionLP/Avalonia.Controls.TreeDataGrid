@@ -289,17 +289,25 @@ public class HierarchicalRows<TModel> : ReadOnlyListBase<HierarchicalRow<TModel>
 
     private void FilterChildren(Func<TModel, bool>? filter)
     {
-        foreach (var row in _roots)
+        // Propagate to all materialized rows, including those hidden by the current filter,
+        // so that their subtrees are correct when a later RefreshFilter makes them visible.
+        if (_roots.UnfilteredRows is { } rows)
         {
-            row.FilterChildren(filter);
+            foreach (var row in rows)
+            {
+                row.FilterChildren(filter);
+            }
         }
     }
 
     private void RefreshChildrenFilter()
     {
-        foreach (var row in _roots)
+        if (_roots.UnfilteredRows is { } rows)
         {
-            row.RefreshFilter();
+            foreach (var row in rows)
+            {
+                row.RefreshFilter();
+            }
         }
     }
 
@@ -475,7 +483,9 @@ public class HierarchicalRows<TModel> : ReadOnlyListBase<HierarchicalRow<TModel>
 
         protected override HierarchicalRow<TModel> CreateRow(int modelIndex, TModel model)
         {
-            return new HierarchicalRow<TModel>(_owner, _owner._expanderColumn, new IndexPath(modelIndex), model, _owner._comparison);
+            var row = new HierarchicalRow<TModel>(_owner, _owner._expanderColumn, new IndexPath(modelIndex), model, _owner._comparison);
+            row.FilterChildren(_owner._filter);
+            return row;
         }
     }
 }

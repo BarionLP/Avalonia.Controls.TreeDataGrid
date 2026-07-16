@@ -24,6 +24,12 @@ public abstract class SortableRowsBase<TModel, TRow> : ReadOnlyListBase<TRow>, I
     public override int Count => _sortedIndexes?.Count ?? _unsortedRows?.Count ?? _items.Count;
     public bool IsFiltered => _filter is not null;
 
+    /// <summary>
+    /// Gets all materialized rows, including those currently hidden by the filter, or null if
+    /// the rows have not yet been materialized.
+    /// </summary>
+    internal IReadOnlyList<TRow>? UnfilteredRows => _unsortedRows;
+
 
     public override TRow this[int index]
     {
