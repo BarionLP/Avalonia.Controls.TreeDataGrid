@@ -122,7 +122,6 @@ public class HierarchicalTreeDataGridSource<TModel> : NotifyingBase,
     public void RefreshFilter()
     {
         GetOrCreateRows().RefreshFilter();
-        Sorted?.Invoke();
     }
 
     /// <summary>

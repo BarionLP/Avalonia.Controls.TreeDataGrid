@@ -119,7 +119,6 @@ public class FlatTreeDataGridSource<TModel>(IEnumerable<TModel> items) : Notifyi
     public void RefreshFilter()
     {
         _rows?.RefreshFilter();
-        this.Sorted?.Invoke();
     }
 
     void ITreeDataGridSource.DragDropRows(
