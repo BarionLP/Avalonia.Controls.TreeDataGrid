@@ -19,30 +19,25 @@ namespace Avalonia.Controls.Models.TreeDataGrid;
 public sealed class AnonymousSortableRows<TModel> : ReadOnlyListBase<IRow<TModel>>, IRows, IDisposable
 {
     private readonly AnonymousRow<TModel> _row;
+    private readonly RowIndexMap _indexes = new();
     private TreeDataGridItemsSourceView<TModel> _items;
     private IComparer<TModel>? _comparer;
     private Func<TModel, bool>? _filter;
-    private List<int>? _sortedIndexes;
 
     public override IRow<TModel> this[int index]
     {
         get
         {
-            if (_comparer is null && _filter is null)
-            {
-                return _row.Update(index, _items[index]);
-            }
-            if (_sortedIndexes is null)
-            {
-                RebuildSortedIndexes();
-            }
-            var modelIndex = _sortedIndexes![index];
+            if (_indexes.IsActive && !_indexes.IsBuilt)
+                _indexes.Rebuild(_items.Count);
+
+            var modelIndex = _indexes.RowToModelIndex(index);
             return _row.Update(modelIndex, _items[modelIndex]);
         }
     }
 
     IRow IReadOnlyList<IRow>.this[int index] => this[index];
-    public override int Count => _sortedIndexes?.Count ?? _items.Count;
+    public override int Count => _indexes.RowCount ?? _items.Count;
     public bool IsFiltered => _filter is not null;
 
     public event NotifyCollectionChangedEventHandler? CollectionChanged;
@@ -52,6 +47,7 @@ public sealed class AnonymousSortableRows<TModel> : ReadOnlyListBase<IRow<TModel
         _items = items;
         _items.CollectionChanged += OnItemsCollectionChanged;
         _comparer = comparer;
+        _indexes.SetComparison(comparer is null ? null : CompareItemsByIndex);
         _row = new AnonymousRow<TModel>();
     }
 
@@ -103,7 +99,8 @@ public sealed class AnonymousSortableRows<TModel> : ReadOnlyListBase<IRow<TModel
         if (_filter != filter)
         {
             _filter = filter;
-            RebuildSortedIndexes();
+            _indexes.SetFilter(filter is null ? null : FilterByIndex);
+            _indexes.Rebuild(_items.Count);
             CollectionChanged?.Invoke(this, CollectionExtensions.ResetEvent);
         }
     }
@@ -111,42 +108,16 @@ public sealed class AnonymousSortableRows<TModel> : ReadOnlyListBase<IRow<TModel
     public int ModelIndexToRowIndex(IndexPath modelIndex)
     {
         if (modelIndex.Count is not 1) return -1;
-
-        var i = modelIndex[0];
-
-        // Reject out of range model indexes before searching: the comparison used by the
-        // search reads the model at the index, so it can't be used to look up an item which
-        // isn't in the source collection.
-        if (i < 0 || i >= _items.Count)
-            return -1;
-
-        if (_sortedIndexes is null && (_comparer is not null || _filter is not null))
-        {
-            RebuildSortedIndexes();
-        }
-
-        if (_sortedIndexes is null)
-        {
-            return i;
-        }
-
-        // When no comparer is set (filter only), the indexes are sorted in ascending model
-        // index order, so search using the default integer comparison.
-        var rowIndex = _comparer is null
-            ? SortHelper<int>.BinarySearch(_sortedIndexes, i)
-            : SortHelper<int>.BinarySearch(_sortedIndexes, i, CompareItemsByIndex);
-
-        // A negative result is the bitwise complement of the insertion point: the model index
-        // has no row because it's hidden by the filter.
-        return rowIndex >= 0 ? rowIndex : -1;
+        return _indexes.ModelToRowIndex(modelIndex[0], _items.Count);
     }
 
-    public IndexPath RowIndexToModelIndex(int rowIndex) => _sortedIndexes?[rowIndex] ?? rowIndex;
+    public IndexPath RowIndexToModelIndex(int rowIndex) => _indexes.RowToModelIndex(rowIndex);
 
     public void Sort(IComparer<TModel>? comparer)
     {
         _comparer = comparer;
-        RebuildSortedIndexes();
+        _indexes.SetComparison(comparer is null ? null : CompareItemsByIndex);
+        _indexes.Rebuild(_items.Count);
         CollectionChanged?.Invoke(this, CollectionExtensions.ResetEvent);
     }
 
@@ -157,33 +128,24 @@ public sealed class AnonymousSortableRows<TModel> : ReadOnlyListBase<IRow<TModel
 
     public void RefreshFilter()
     {
-        RebuildSortedIndexes();
+        _indexes.Rebuild(_items.Count);
         CollectionChanged?.Invoke(this, CollectionExtensions.ResetEvent);
     }
 
     IEnumerator<IRow> IEnumerable<IRow>.GetEnumerator() => GetEnumerator();
 
-    private void RebuildSortedIndexes()
-    {
-        if (_comparer is null && _filter is null)
-        {
-            _sortedIndexes = null;
-        }
-        else
-        {
-            _sortedIndexes = StableSort.SortedMap(_items, (_comparer is null) ? null : CompareItemsByIndex, (_filter is null) ? null : FilterByIndex);
-        }
-    }
-
     private void OnItemsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        if (_comparer is null && _filter is null)
+        // Without a sort or a filter, rows are the items: a change can be forwarded as-is, one
+        // event per change. Once the rows are ordered or filtered a change to a range of items
+        // affects scattered rows, so it has to be reported a row at a time.
+        if (_indexes.IsActive)
         {
-            OnItemsCollectionChangedUnsorted(e);
+            OnItemsCollectionChangedSorted(e);
         }
         else
         {
-            OnItemsCollectionChangedSorted(e);
+            OnItemsCollectionChangedUnsorted(e);
         }
     }
 
@@ -209,7 +171,7 @@ public sealed class AnonymousSortableRows<TModel> : ReadOnlyListBase<IRow<TModel
         // If the rows have not yet been read then the type of collection change shouldn't be
         // important; the only thing we need to do is inform the presenter that the collection
         // has changed so that it can display the new items if the previous items were empty.
-        if (_sortedIndexes is null)
+        if (!_indexes.IsBuilt)
         {
             CollectionChanged?.Invoke(this, CollectionExtensions.ResetEvent);
             return;
@@ -218,7 +180,7 @@ public sealed class AnonymousSortableRows<TModel> : ReadOnlyListBase<IRow<TModel
         switch (e.Action)
         {
             case NotifyCollectionChangedAction.Add:
-                Add(e.NewStartingIndex, e.NewItems!);
+                Add(e.NewStartingIndex, e.NewItems!.Count);
                 break;
             case NotifyCollectionChangedAction.Remove:
                 Remove(e.OldStartingIndex, e.OldItems!);
@@ -226,64 +188,36 @@ public sealed class AnonymousSortableRows<TModel> : ReadOnlyListBase<IRow<TModel
             case NotifyCollectionChangedAction.Replace:
             case NotifyCollectionChangedAction.Move:
                 Remove(e.OldStartingIndex, e.OldItems!);
-                Add(e.NewStartingIndex, e.NewItems!);
+                Add(e.NewStartingIndex, e.NewItems!.Count);
                 break;
             case NotifyCollectionChangedAction.Reset:
-                RebuildSortedIndexes();
+                _indexes.Rebuild(_items.Count);
                 CollectionChanged?.Invoke(this, e);
                 break;
             default:
                 throw new NotSupportedException();
         }
 
-        void Add(int startIndex, IList items)
+        void Add(int startIndex, int count)
         {
-            int count = items.Count;
-            for (var i = 0; i < _sortedIndexes.Count; i++)
-            {
-                var ix = _sortedIndexes[i];
-                if (ix >= startIndex)
-                {
-                    _sortedIndexes[i] = ix + count;
-                }
-            }
-            for (var i = 0; i < count; i++)
-            {
-                var myindex = startIndex + i;
-                if (_filter is null || FilterByIndex(myindex))
-                {
-                    var index = _comparer is null
-                        ? SortHelper<int>.BinarySearch(_sortedIndexes, myindex)
-                        : SortHelper<int>.BinarySearch(_sortedIndexes, myindex, CompareItemsByIndex);
-                    if (index < 0)
-                    {
-                        index = ~index;
-                    }
-                    _sortedIndexes.Insert(index, myindex);
-                    CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, _row.Update(myindex, _items[myindex]), index));
-                }
-            }
+            _indexes.ItemsAdded(startIndex, count, (modelIndex, rowIndex) =>
+                CollectionChanged?.Invoke(
+                    this,
+                    new NotifyCollectionChangedEventArgs(
+                        NotifyCollectionChangedAction.Add,
+                        _row.Update(modelIndex, _items[modelIndex]),
+                        rowIndex)));
         }
 
         void Remove(int startIndex, IList removed)
         {
-            var count = removed.Count;
-            var endIndex = startIndex + count;
-
-            for (var i = 0; i < _sortedIndexes.Count; i++)
-            {
-                var ix = _sortedIndexes[i];
-                if (ix >= startIndex && ix < endIndex)
-                {
-                    _sortedIndexes.RemoveAt(i);
-                    CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, _row.Update(ix, (TModel)removed[ix - startIndex]!), i));
-                    i--;
-                }
-                else if (ix >= endIndex)
-                {
-                    _sortedIndexes[i] = ix - count;
-                }
-            }
+            _indexes.ItemsRemoved(startIndex, removed.Count, (modelIndex, rowIndex) =>
+                CollectionChanged?.Invoke(
+                    this,
+                    new NotifyCollectionChangedEventArgs(
+                        NotifyCollectionChangedAction.Remove,
+                        _row.Update(modelIndex, (TModel)removed[modelIndex - startIndex]!),
+                        rowIndex)));
         }
     }
 

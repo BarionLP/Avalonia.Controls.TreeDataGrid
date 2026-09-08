@@ -161,7 +161,14 @@ public class TreeDataGrid : TemplatedControl
         set => SetValue(ShowColumnHeadersProperty, value);
     }
 
-    public ITreeDataGridCellSelectionModel? ColumnSelection => Source?.Selection as ITreeDataGridCellSelectionModel;
+    /// <summary>
+    /// Gets the source's selection model if it selects cells; otherwise null.
+    /// </summary>
+    public ITreeDataGridCellSelectionModel? CellSelection => Source?.Selection as ITreeDataGridCellSelectionModel;
+
+    /// <summary>
+    /// Gets the source's selection model if it selects rows; otherwise null.
+    /// </summary>
     public ITreeDataGridRowSelectionModel? RowSelection => Source?.Selection as ITreeDataGridRowSelectionModel;
 
     public ITreeDataGridSource? Source
@@ -267,23 +274,27 @@ public class TreeDataGrid : TemplatedControl
         return false;
     }
 
+    /// <summary>
+    /// Finds the realized row containing the specified element.
+    /// </summary>
+    /// <param name="element">The element, which may be a row itself.</param>
+    /// <param name="result">The row, if one was found.</param>
+    /// <returns>True if a realized row was found; otherwise false.</returns>
     public bool TryGetRow(Control? element, [NotNullWhen(true)] out TreeDataGridRow? result)
     {
-        if (element is TreeDataGridRow row && row.RowIndex >= 0)
+        // Walk up until a row which is realized: a row nested in the template of another row's
+        // cell can be unrealized while its ancestor is not.
+        for (var c = element; c is not null; c = c.FindAncestorOfType<TreeDataGridRow>())
         {
-            result = row;
-            return true;
+            if (c is TreeDataGridRow { RowIndex: >= 0 } row)
+            {
+                result = row;
+                return true;
+            }
         }
 
-        do
-        {
-            result = element?.FindAncestorOfType<TreeDataGridRow>();
-            if (result?.RowIndex >= 0)
-                break;
-            element = result;
-        } while (result is not null);
-
-        return result is not null;
+        result = null;
+        return false;
     }
 
     public bool TryGetRowModel<TModel>(Control element, [NotNullWhen(true)] out TModel? result)

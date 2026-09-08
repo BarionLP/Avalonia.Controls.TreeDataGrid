@@ -26,7 +26,6 @@ public abstract class TreeDataGridCell : TemplatedControl, ITreeDataGridCell
     static TreeDataGridCell()
     {
         FocusableProperty.OverrideDefaultValue<TreeDataGridCell>(true);
-        // DoubleTappedEvent.AddClassHandler<TreeDataGridCell>((x, e) => x.OnDoubleTapped(e));
     }
 
     public int ColumnIndex { get; private set; } = -1;

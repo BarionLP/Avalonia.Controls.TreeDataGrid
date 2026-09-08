@@ -24,7 +24,7 @@ public class FlatTreeDataGridSource<TModel>(IEnumerable<TModel> items) : Notifyi
     private IComparer<TModel>? _comparer;
     private ITreeDataGridSelection? _selection;
     private bool _isSelectionSet;
-    private IColumn? sortedColumn;
+    private IColumn? _sortedColumn;
 
     public ColumnList<TModel> Columns { get; } = [];
     public IRows Rows => _rows ??= CreateRows();
@@ -84,10 +84,10 @@ public class FlatTreeDataGridSource<TModel>(IEnumerable<TModel> items) : Notifyi
 
     public void ClearSort(IColumn column)
     {
-        if (column == sortedColumn)
+        if (column == _sortedColumn)
         {
             column.SortDirection = null;
-            sortedColumn = null;
+            _sortedColumn = null;
             Sort(null);
         }
     }
@@ -189,7 +189,7 @@ public class FlatTreeDataGridSource<TModel>(IEnumerable<TModel> items) : Notifyi
             {
                 c.SortDirection = c == column ? direction : null;
             }
-            sortedColumn = column;
+            _sortedColumn = column;
             return true;
         }
         return false;
