@@ -1,7 +1,8 @@
-﻿using Avalonia.Collections;
+using Avalonia.Collections;
 using Avalonia.Controls.Models.TreeDataGrid;
 using Avalonia.Controls.Primitives;
 using Avalonia.Data;
+using Avalonia.Reactive;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -10,49 +11,50 @@ namespace Avalonia.Controls.TreeDataGridTests.Primitives;
 
 public class TreeDataGridRowsPresenterTests_VariableHeight
 {
-    // [Test]
-    // [Arguments(10)]
-    // [Arguments(20)]
-    // [Arguments(50)]
-    // public async Task Scroll_Down_To_Bottom(double step)
-    // {
-    //     var (target, scroll, _) = CreateTarget();
+    [Test]
+    [Arguments(10)]
+    [Arguments(20)]
+    [Arguments(50)]
+    public async Task Scroll_Down_To_Bottom(double step)
+    {
+        var (target, scroll, _) = CreateTarget();
 
-    //     Layout(target);
+        Layout(target);
 
-    //     var index = GetFirstRowIndex(target);
-    //     await Assert.That(index).IsZero();
+        var index = GetFirstRowIndex(target);
+        await Assert.That(index).IsZero();
 
-    //     while (scroll.Offset.Y < scroll.Extent.Height - scroll.Viewport.Height)
-    //     {
-    //         scroll.Offset = new Vector(0, scroll.Offset.Y + step);
-    //         System.Diagnostics.Debug.WriteLine(scroll.Offset.Y);
-    //         Layout(target);
+        while (scroll.Offset.Y < scroll.Extent.Height - scroll.Viewport.Height)
+        {
+            scroll.Offset = new Vector(0, scroll.Offset.Y + step);
+            System.Diagnostics.Debug.WriteLine(scroll.Offset.Y);
+            Layout(target);
 
-    //         var newIndex = GetFirstRowIndex(target);
-    //         await Assert.That(newIndex >= index).IsTrue();
-    //         index = newIndex;
-    //     }
-    // }
+            var newIndex = GetFirstRowIndex(target);
+            await Assert.That(newIndex >= index).IsTrue();
+            index = newIndex;
+        }
+    }
 
-    // [Test]
-    // public async Task Scroll_To_Bottom()
-    // {
-    //     var (target, scroll, items) = CreateTarget();
+    [Test]
+    public async Task Scroll_To_Bottom()
+    {
+        var (target, scroll, items) = CreateTarget();
 
-    //     scroll.GetObservable(ScrollViewer.OffsetProperty).Subscribe(null!);
+        // Keep the offset observable subscribed for the duration of the test.
+        scroll.GetObservable(ScrollViewer.OffsetProperty).Subscribe(new AnonymousObserver<Vector>(_ => { }));
 
-    //     Layout(target);
+        Layout(target);
 
-    //     var index = GetFirstRowIndex(target);
-    //     await Assert.That(index).IsZero();
+        var index = GetFirstRowIndex(target);
+        await Assert.That(index).IsZero();
 
-    //     scroll.Offset = new Vector(0, scroll.Extent.Height - scroll.Viewport.Height);
-    //     Layout(target);
+        scroll.Offset = new Vector(0, scroll.Extent.Height - scroll.Viewport.Height);
+        Layout(target);
 
-    //     var lastIndex = GetLastRowIndex(target);
-    //     await Assert.That(lastIndex).IsEqualTo(items.Count - 1);
-    // }
+        var lastIndex = GetLastRowIndex(target);
+        await Assert.That(lastIndex).IsEqualTo(items.Count - 1);
+    }
 
     private static int GetFirstRowIndex(TreeDataGridRowsPresenter target)
     {

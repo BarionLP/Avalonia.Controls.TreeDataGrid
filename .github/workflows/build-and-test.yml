@@ -7,8 +7,8 @@ jobs:
 
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - name: Setup .NET Core SDK ${{ matrix.dotnet-version }}
+      - uses: actions/checkout@v7
+      - name: Setup .NET SDK
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 10.0.x
@@ -17,4 +17,4 @@ jobs:
       - name: Build
         run: dotnet build --configuration release --no-restore
       - name: Test
-        run: dotnet test --no-restore --verbosity normal
+        run: dotnet run --project tests/Avalonia.Controls.TreeDataGrid.Tests/Avalonia.Controls.TreeDataGrid.Tests.csproj --configuration release --no-build
