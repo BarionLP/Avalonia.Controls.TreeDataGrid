@@ -99,13 +99,20 @@ public interface ITreeDataGridSource<TModel> : ITreeDataGridSource
     /// </summary>
     new IEnumerable<TModel> Items { get; set; }
 
-    // /// <summary>
-    // /// Sorts the data source using the specified comparison.
-    // /// </summary>
-    // /// <param name="comparison">
-    // /// A <see cref="Comparison{TModel}"/> delegate that defines the item order.
-    // /// </param>
-    // void Sort(Comparison<TModel?>? comparison);
+    /// <summary>
+    /// Sorts the data source using the specified comparison.
+    /// </summary>
+    /// <param name="comparison">
+    /// A <see cref="Comparison{TModel}"/> delegate that defines the item order, or null to
+    /// clear the sort.
+    /// </param>
+    void Sort(Comparison<TModel?>? comparison);
 
-    public void Filter(Func<TModel, bool>? filter);
+    /// <summary>
+    /// Filters the data source using the specified predicate.
+    /// </summary>
+    /// <param name="filter">
+    /// A predicate which returns true for the items to display, or null to clear the filter.
+    /// </param>
+    void Filter(Func<TModel, bool>? filter);
 }

@@ -254,6 +254,11 @@ public class TreeDataGridRowSelectionModel<TModel> : TreeSelectionModelBase<TMod
                         UpdateSelectionAndBringIntoView(newIndex);
                         return;
                     }
+                    else if (selectedIndex < 0)
+                    {
+                        // Nothing is selected, or the selected row is hidden by the filter, so
+                        // there is no row to page down from: land on the last visible row.
+                    }
                     else if (childrenCount + selectedIndex - 1 <= sender.RowsPresenter.Items.Count)
                     {
                         newIndex = childrenCount + selectedIndex - 2;
@@ -291,6 +296,10 @@ public class TreeDataGridRowSelectionModel<TModel> : TreeSelectionModelBase<TMod
                         newIndex = 0;
                     }
                 }
+
+                // The arithmetic above can run off either end of the list, and a row index
+                // outside the list would be passed on to the selection model as a model index.
+                newIndex = Math.Clamp(newIndex, 0, sender.RowsPresenter.Items.Count - 1);
                 UpdateSelectionAndBringIntoView(newIndex);
             }
         }
@@ -302,7 +311,7 @@ public class TreeDataGridRowSelectionModel<TModel> : TreeSelectionModelBase<TMod
         if (valueSelector != null && model != null)
         {
             var value = valueSelector(model);
-            if (value != null && value.ToUpper().StartsWith(candidatePattern))
+            if (value != null && value.StartsWith(candidatePattern, StringComparison.CurrentCultureIgnoreCase))
             {
                 UpdateSelection(treeDataGrid, newIndex, true);
                 treeDataGrid.RowsPresenter?.BringIntoView(newIndex);
@@ -353,7 +362,7 @@ public class TreeDataGridRowSelectionModel<TModel> : TreeSelectionModelBase<TMod
             sender.TryGetRow(source, out var row))
         {
             var p = e.GetPosition(sender);
-            if (Math.Abs(p.X - _pressedPoint.X) <= 3 || Math.Abs(p.Y - _pressedPoint.Y) <= 3)
+            if (Math.Abs(p.X - _pressedPoint.X) <= 3 && Math.Abs(p.Y - _pressedPoint.Y) <= 3)
                 PointerSelect(sender, row, e);
         }
     }

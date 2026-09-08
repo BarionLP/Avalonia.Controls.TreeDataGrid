@@ -4,6 +4,7 @@ using Avalonia.Controls.Metadata;
 using Avalonia.Controls.Models.TreeDataGrid;
 using Avalonia.Controls.Selection;
 using Avalonia.Input;
+using Avalonia.Logging;
 using Avalonia.LogicalTree;
 
 namespace Avalonia.Controls.Primitives;
@@ -40,6 +41,7 @@ public class TreeDataGridRow : TemplatedControl
     private bool _isSelected;
     private IRows? _rows;
     private Point _mouseDownPosition = s_InvalidPoint;
+    private PointerPressedEventArgs? _lastPointerPressed;
     private TreeDataGrid? _treeDataGrid;
 
     public IColumns? Columns
@@ -142,12 +144,11 @@ public class TreeDataGridRow : TemplatedControl
             CellsPresenter?.Realize(RowIndex);
     }
 
-    private PointerPressedEventArgs? lastPointerPressedEventArgs;
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);
         _mouseDownPosition = e.Handled ? s_InvalidPoint : e.GetPosition(this);
-        lastPointerPressedEventArgs = e;
+        _lastPointerPressed = e;
     }
 
     protected override void OnPointerMoved(PointerEventArgs e)
@@ -172,21 +173,50 @@ public class TreeDataGridRow : TemplatedControl
 
         _mouseDownPosition = s_InvalidPoint;
 
-        var presenter = Parent as TreeDataGridRowsPresenter;
-        var owner = presenter?.TemplatedParent as TreeDataGrid;
-        owner?.RaiseRowDragStarted(lastPointerPressedEventArgs!);
+        // The press that started the gesture is the drag trigger; release it either way so
+        // that the row doesn't keep the event args (and the pointer they reference) alive.
+        var trigger = _lastPointerPressed;
+        _lastPointerPressed = null;
+
+        if (trigger is null ||
+            Parent is not TreeDataGridRowsPresenter presenter ||
+            presenter.TemplatedParent is not TreeDataGrid owner)
+            return;
+
+        StartDrag(owner, trigger);
+    }
+
+    /// <summary>
+    /// Starts a drag which runs until the user drops or cancels it. Nothing awaits the
+    /// operation, so log any failure rather than leaving the exception unobserved.
+    /// </summary>
+    private static async void StartDrag(TreeDataGrid owner, PointerPressedEventArgs trigger)
+    {
+        try
+        {
+            await owner.RaiseRowDragStarted(trigger);
+        }
+        catch (Exception ex)
+        {
+            Logger.TryGet(LogEventLevel.Error, LogArea.Control)?.Log(
+                owner,
+                "Row drag and drop failed: {Exception}",
+                ex);
+        }
     }
 
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
     {
         base.OnPointerReleased(e);
         _mouseDownPosition = s_InvalidPoint;
+        _lastPointerPressed = null;
     }
 
     protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e)
     {
         base.OnPointerCaptureLost(e);
         _mouseDownPosition = s_InvalidPoint;
+        _lastPointerPressed = null;
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)

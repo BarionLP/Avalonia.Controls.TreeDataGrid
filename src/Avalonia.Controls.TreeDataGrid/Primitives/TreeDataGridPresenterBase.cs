@@ -503,6 +503,14 @@ public abstract class TreeDataGridPresenterBase<TItem> : Border
 
         // If the anchor element is at the beginning of, or before, the start of the viewport
         // then we can recycle all elements before it.
+        //
+        // NOTE: this condition is always true, since `u` was just assigned from `viewport.anchorU`.
+        // Going by the comment it was meant to read `viewport.anchorU <= viewport.viewportUStart`,
+        // which would skip the recycle when the anchor starts after the viewport, avoiding a
+        // recycle/re-realize round trip for the elements the backwards pass below then recreates.
+        // Avalonia's own VirtualizingStackPanel still ships the same always-true condition, so it
+        // is left alone here: matching upstream's virtualization behaviour is worth more than
+        // saving that churn, and no test can tell the two apart.
         if (u <= viewport.anchorU)
             _realizedElements.RecycleElementsBefore(viewport.anchorIndex, _recycleElement);
 

@@ -50,11 +50,10 @@ internal static class CollectionExtensions
 
     public static void InsertMany<T>(this List<T> list, int index, T item, int count)
     {
-        var repeat = FastRepeat<T>.Instance;
-        repeat.Count = count;
-        repeat.Item = item;
-        list.InsertRange(index, FastRepeat<T>.Instance);
-        repeat.Item = default;
+        if (count <= 0)
+            return;
+
+        list.InsertRange(index, new FastRepeat<T>(item, count));
     }
 
     public static T[] Slice<T>(this List<T> list, int index, int count)
@@ -64,12 +63,15 @@ internal static class CollectionExtensions
         return result;
     }
 
-    private class FastRepeat<T> : ICollection<T>
+    /// <summary>
+    /// A read-only collection which yields the same item <see cref="Count"/> times, used to
+    /// insert a repeated item into a list in a single operation.
+    /// </summary>
+    private sealed class FastRepeat<T>(T item, int count) : ICollection<T>
     {
-        public static readonly FastRepeat<T> Instance = new();
-        public int Count { get; set; }
+        public int Count { get; } = count;
         public bool IsReadOnly => true;
-        [AllowNull] public T Item { get; set; }
+        [AllowNull] public T Item { get; } = item;
         public void Add(T item) => throw new NotImplementedException();
         public void Clear() => throw new NotImplementedException();
         public bool Contains(T item) => throw new NotImplementedException();

@@ -84,7 +84,7 @@ public class TreeDataGrid : TemplatedControl
     private IScrollable? _scroll;
     private IScrollable? _headerScroll;
     private ITreeDataGridSelectionInteraction? _selection;
-    private Control? _userSortColumn;
+    private IColumn? _userSortColumn;
     private ListSortDirection _userSortDirection;
     private TreeDataGridCellEventArgs? _cellArgs;
     private TreeDataGridRowEventArgs? _rowArgs;
@@ -484,9 +484,13 @@ public class TreeDataGrid : TemplatedControl
             columnHeader.ColumnIndex < _source.Columns.Count &&
             CanUserSortColumns)
         {
-            if (_userSortColumn != columnHeader)
+            // Track the column, not the header control: headers are virtualized and recycled,
+            // so the same control can represent a different column after scrolling.
+            var column = _source.Columns[columnHeader.ColumnIndex];
+
+            if (_userSortColumn != column)
             {
-                _userSortColumn = columnHeader;
+                _userSortColumn = column;
                 _userSortDirection = ListSortDirection.Ascending;
             }
             else
@@ -495,8 +499,10 @@ public class TreeDataGrid : TemplatedControl
                     ListSortDirection.Descending : ListSortDirection.Ascending;
             }
 
-            var column = _source.Columns[columnHeader.ColumnIndex];
-            _source.SortBy(column, _userSortDirection);
+            // If the column can't be sorted, don't remember it: otherwise the next click on it
+            // would toggle the direction even though nothing was sorted.
+            if (!_source.SortBy(column, _userSortDirection))
+                _userSortColumn = null;
         }
     }
 

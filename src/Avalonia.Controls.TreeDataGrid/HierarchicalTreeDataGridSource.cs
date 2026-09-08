@@ -43,6 +43,7 @@ public class HierarchicalTreeDataGridSource<TModel> : NotifyingBase,
                 _itemsView = TreeDataGridItemsSourceView<TModel>.GetOrCreate(value);
                 _rows?.SetItems(_itemsView);
                 _selection?.Source = value;
+                RaisePropertyChanged();
             }
         }
     }
@@ -107,9 +108,9 @@ public class HierarchicalTreeDataGridSource<TModel> : NotifyingBase,
     {
         if (column == _sortedColumn)
         {
-            Sort(null);
             column.SortDirection = null;
-            Sorted?.Invoke();
+            _sortedColumn = null;
+            Sort(null);
         }
     }
 
@@ -210,22 +211,13 @@ public class HierarchicalTreeDataGridSource<TModel> : NotifyingBase,
 		return false;
 	}
 
+    /// <inheritdoc />
     public void Sort(Comparison<TModel?>? comparison)
     {
         _comparison = comparison;
         _rows?.Sort(_comparison);
-        // Sorted?.Invoke();
+        Sorted?.Invoke();
     }
-
-    // public void Unsort()
-    // {
-    //     Sort(null);
-
-    //     foreach (var column in Columns)
-    //     {
-    //         column.SortDirection = null;
-    //     }
-    // }
 
     public bool SortBy(IColumn? column, ListSortDirection direction)
     {
@@ -233,13 +225,12 @@ public class HierarchicalTreeDataGridSource<TModel> : NotifyingBase,
             Columns.Contains(columnBase) &&
             columnBase.GetComparison(direction) is Comparison<TModel> comparison)
         {
-            Sort(comparison);
-            Sorted?.Invoke();
             foreach (var c in Columns)
             {
                 c.SortDirection = c == column ? direction : null;
             }
             _sortedColumn = column;
+            Sort(comparison);
             return true;
         }
 

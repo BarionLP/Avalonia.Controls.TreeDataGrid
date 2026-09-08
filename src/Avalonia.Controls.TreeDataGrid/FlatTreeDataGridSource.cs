@@ -86,10 +86,9 @@ public class FlatTreeDataGridSource<TModel>(IEnumerable<TModel> items) : Notifyi
     {
         if (column == sortedColumn)
         {
-            _comparer = null;
-            _rows?.Sort(_comparer);
             column.SortDirection = null;
-            Sorted?.Invoke();
+            sortedColumn = null;
+            Sort(null);
         }
     }
 
@@ -196,9 +195,10 @@ public class FlatTreeDataGridSource<TModel>(IEnumerable<TModel> items) : Notifyi
         return false;
     }
 
-    private void Sort(Comparison<TModel?> comparison)
+    /// <inheritdoc />
+    public void Sort(Comparison<TModel?>? comparison)
     {
-        _comparer = new FuncComparer<TModel>(comparison);
+        _comparer = comparison is null ? null : new FuncComparer<TModel>(comparison);
         _rows?.Sort(_comparer);
         Sorted?.Invoke();
     }

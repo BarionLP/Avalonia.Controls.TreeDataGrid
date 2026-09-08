@@ -347,54 +347,6 @@ public abstract class SelectionNodeBase<T> : ICollectionChangedListener
         };
     }
 
-    private protected IReadOnlyList<CollectionChangeState> OnItemsMoved(
-        int oldIndex,
-        int newIndex,
-        int count)
-    {
-        var selectedItemsMoved = false;
-        var unselectedItemsMoved = false;
-
-        if (_ranges is not null)
-        {
-            var removedRange = new IndexRange(oldIndex, oldIndex + count - 1);
-            var movedRanges = new List<IndexRange>();
-
-            if (IndexRange.Remove(_ranges, removedRange, movedRanges) > 0)
-            {
-                foreach (var range in movedRanges)
-                {
-                    var insertRange = new IndexRange(
-                        range.Begin + (newIndex - oldIndex),
-                        range.End + (newIndex - oldIndex));
-                    IndexRange.Add(_ranges, insertRange);
-                    selectedItemsMoved = true;
-                }
-            }
-
-            for (var i = 0; i < Ranges!.Count; ++i)
-            {
-                var existing = Ranges[i];
-
-                if (existing.Begin >= oldIndex && existing.End < newIndex)
-                {
-                    _ranges[i] = new IndexRange(existing.Begin - count, existing.End - count);
-                    unselectedItemsMoved = true;
-                }
-            }
-        }
-
-        if (selectedItemsMoved || unselectedItemsMoved)
-        {
-            var changes = new List<CollectionChangeState>();
-            return changes;
-        }
-        else
-        {
-            return [];
-        }
-    }
-
     /// <summary>
     /// Details the results of a collection change on the current selection;
     /// </summary>
