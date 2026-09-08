@@ -120,16 +120,31 @@ public abstract class SortableRowsBase<TModel, TRow> : ReadOnlyListBase<TRow>, I
 
     protected int ModelIndexToRowIndex(int modelIndex)
     {
+        // Reject out of range model indexes before searching: the comparison used by the
+        // search reads the model at the index, so it can't be used to look up an item which
+        // isn't in the source collection.
+        if (modelIndex < 0 || modelIndex >= _items.Count)
+            return -1;
+
+        if (_unsortedRows is null && (_comparison is not null || _filter is not null))
+        {
+            GetOrCreateRows();
+        }
+
         if (_sortedIndexes is null)
         {
-            return modelIndex >= 0 && modelIndex < _items.Count ? modelIndex : -1;
+            return modelIndex;
         }
 
         // When no comparison is set (filter only), the indexes are sorted in ascending model
         // index order, so search using the default integer comparison.
-        return _comparison is null
+        var rowIndex = _comparison is null
             ? SortHelper<int>.BinarySearch(_sortedIndexes, modelIndex)
             : SortHelper<int>.BinarySearch(_sortedIndexes, modelIndex, CompareItemsByIndex);
+
+        // A negative result is the bitwise complement of the insertion point: the model index
+        // has no row because it's hidden by the filter.
+        return rowIndex >= 0 ? rowIndex : -1;
     }
 
     protected int RowIndexToModelIndex(int rowIndex) => _sortedIndexes?[rowIndex] ?? rowIndex;

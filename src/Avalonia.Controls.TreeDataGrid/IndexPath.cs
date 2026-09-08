@@ -145,17 +145,14 @@ public readonly struct IndexPath : IReadOnlyList<int>,
 
     public override int GetHashCode()
     {
+        // Hash the indexes themselves rather than the fields backing them: a path with a
+        // single index can be stored either in _path or in _index, and the two representations
+        // compare equal, so they must produce the same hash code.
         var hashCode = -504981047;
+        var count = Count;
 
-        if (_path != null)
-        {
-            foreach (var i in _path)
-                hashCode = hashCode * -1521134295 + i.GetHashCode();
-        }
-        else
-        {
-            hashCode = hashCode * -1521134295 + _index.GetHashCode();
-        }
+        for (var i = 0; i < count; ++i)
+            hashCode = hashCode * -1521134295 + this[i].GetHashCode();
 
         return hashCode;
     }

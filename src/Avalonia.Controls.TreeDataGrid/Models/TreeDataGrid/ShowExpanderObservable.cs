@@ -45,6 +45,7 @@ internal class ShowExpanderObservable<TModel> : SingleSubscriberObservableBase<b
 
     protected override void Unsubscribed()
     {
+        DetachCollectionChanged();
         _subscription?.Dispose();
         _subscription = null;
         _model = null;
@@ -58,8 +59,7 @@ internal class ShowExpanderObservable<TModel> : SingleSubscriberObservableBase<b
 
     void IObserver<BindingValue<IEnumerable<TModel>?>>.OnNext(BindingValue<IEnumerable<TModel>?> value)
     {
-        if (_incc is not null)
-            _incc.CollectionChanged -= OnCollectionChanged;
+        DetachCollectionChanged();
 
         if (value.HasValue && value.Value is not null)
         {
@@ -85,5 +85,14 @@ internal class ShowExpanderObservable<TModel> : SingleSubscriberObservableBase<b
     private void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
         PublishNext((sender as IEnumerable<TModel>)?.Any() ?? false);
+    }
+
+    private void DetachCollectionChanged()
+    {
+        if (_incc is not null)
+        {
+            _incc.CollectionChanged -= OnCollectionChanged;
+            _incc = null;
+        }
     }
 }
