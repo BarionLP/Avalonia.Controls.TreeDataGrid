@@ -40,6 +40,13 @@ public abstract class ColumnBase<TModel> : NotifyingBase, IColumn<TModel>, IUpda
     /// <summary>
     /// Gets the actual width of the column after measurement.
     /// </summary>
+    /// <remarks>
+    /// For a column with <see cref="GridUnitType.Auto"/> width this only ever grows: the width
+    /// is the widest cell measured so far, and it is not recalculated when that content is
+    /// removed, changed or scrolled out of view. A column widened by a long value therefore
+    /// stays wide for the lifetime of the column. Set the width explicitly, or set
+    /// <see cref="ColumnOptions{TModel}.MaxWidth"/>, if that isn't wanted.
+    /// </remarks>
     public double ActualWidth
     {
         get => _actualWidth;
@@ -107,6 +114,9 @@ public abstract class ColumnBase<TModel> : NotifyingBase, IColumn<TModel>, IUpda
 
     double IUpdateColumnLayout.CellMeasured(double width, int rowIndex)
     {
+        // Only the running maximum is kept, so the auto width never shrinks: which row produced
+        // it isn't tracked, and cells are virtualized, so there is nothing to recompute it from
+        // when that row changes or is removed. See the remarks on ActualWidth.
         _autoWidth = Math.Max(NonNaN(_autoWidth), CoerceActualWidth(width));
         return Width.GridUnitType == GridUnitType.Auto || double.IsNaN(ActualWidth) ?
             _autoWidth : ActualWidth;

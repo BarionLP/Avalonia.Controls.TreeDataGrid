@@ -114,11 +114,20 @@ public class TreeDataGridRowSelectionModel<TModel> : TreeSelectionModelBase<TMod
         }
     }
 
+    /// <summary>
+    /// Selects the next row whose text starts with the characters typed so far.
+    /// </summary>
+    /// <remarks>
+    /// Every column with text search enabled is searched in turn, and each one that finds a
+    /// match selects it, so with more than one searchable column the last match wins and the
+    /// selection can move more than once for a single keystroke. Enable text search on a single
+    /// column if that matters.
+    /// </remarks>
     protected void HandleTextInput(string? text, TreeDataGrid treeDataGrid, int selectedRowIndex)
     {
-        if (text != null && treeDataGrid.Columns != null)
+        if (!string.IsNullOrEmpty(text) && treeDataGrid.Columns != null)
         {
-            var typedChar = text.ToUpper()[0];
+            var typedChar = text[0];
 
             int now = Environment.TickCount;
             int time = 0;
@@ -130,7 +139,9 @@ public class TreeDataGridRowSelectionModel<TModel> : TreeSelectionModelBase<TMod
             string candidatePattern;
             if (time < 500)
             {
-                if (_typedWord.Length == 1 && typedChar == _typedWord[0])
+                // The same letter pressed again cycles through the rows starting with it.
+                if (_typedWord.Length == 1 &&
+                    char.ToUpperInvariant(typedChar) == char.ToUpperInvariant(_typedWord[0]))
                 {
                     candidatePattern = _typedWord;
                 }
@@ -185,6 +196,17 @@ public class TreeDataGridRowSelectionModel<TModel> : TreeSelectionModelBase<TMod
         }
     }
 
+    /// <summary>
+    /// Handles Page Up / Page Down, which move the selection by roughly a viewport at a time.
+    /// </summary>
+    /// <remarks>
+    /// The distance moved is not a clean viewport: if the selected row is on screen the
+    /// selection first jumps to the last (Page Down) or first (Page Up) fully visible row, and
+    /// only subsequent presses move by a page, where a page is the realized row count minus
+    /// two rather than the conventional one row of overlap. The behaviour is kept as-is because
+    /// changing it would change the feel of paging for existing applications; it is only
+    /// guarded here against producing a row index outside the list.
+    /// </remarks>
     void ITreeDataGridSelectionInteraction.OnPreviewKeyDown(TreeDataGrid sender, KeyEventArgs e)
     {
 

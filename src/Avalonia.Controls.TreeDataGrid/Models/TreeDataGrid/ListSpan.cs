@@ -3,6 +3,14 @@ using System.Collections;
 
 namespace Avalonia.Controls.Models.TreeDataGrid;
 
+/// <summary>
+/// Exposes a range of an existing list as a read-only <see cref="IList"/>.
+/// </summary>
+/// <remarks>
+/// This is a window onto the underlying list, not a copy: it is used to hand a range of rows to
+/// a collection changed event without allocating, so its contents follow any later change to
+/// that list. Consumers must read it while handling the event.
+/// </remarks>
 internal class ListSpan : IList
 {
     private readonly IList _items;

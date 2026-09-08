@@ -8,9 +8,17 @@ namespace Avalonia.Controls.Models.TreeDataGrid;
 /// Represents a collection of rows in an <see cref="ITreeDataGridSource"/>.
 /// </summary>
 /// <remarks>
+/// <para>
 /// Note that items retrieved from an <see cref="IRows"/> collection may be reused, so the
 /// <see cref="IRow"/> should be treated as valid only until the next item is retrieved from
 /// the collection.
+/// </para>
+/// <para>
+/// The same applies to the rows carried by <see cref="INotifyCollectionChanged.CollectionChanged"/>:
+/// the OldItems/NewItems collections are a window onto the live rows rather than a snapshot,
+/// so a handler must read what it needs before returning. Storing the event args and reading
+/// them after a later change will report different rows, not the ones the event was raised for.
+/// </para>
 /// </remarks>
 public interface IRows : IReadOnlyList<IRow>, INotifyCollectionChanged
 {
