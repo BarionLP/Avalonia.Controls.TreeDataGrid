@@ -1,4 +1,5 @@
 ﻿using System.Collections.Specialized;
+using System.ComponentModel;
 using Avalonia.Collections;
 using Avalonia.Controls.Models.TreeDataGrid;
 using Avalonia.Controls.Selection;
@@ -189,6 +190,28 @@ public class HierarchicalTreeDataGridSourceTests
 
             data.RemoveAt(1);
             await Assert.That(toRemove.Children!.CollectionChangedSubscriberCount()).IsEqualTo(0);
+        }
+
+        [Test]
+        public async Task Disposing_Expander_Cell_Unsubscribes_From_Child_CollectionChanged()
+        {
+            // An expander cell watches the model's children so that it can show or hide the
+            // expander. Cells are created and disposed every time a row is scrolled in and out
+            // of view, so a subscription left behind accumulates for as long as the grid lives.
+            var data = CreateData();
+            var target = CreateTarget(data, sorted: false);
+            var row = (IRow<Node>)target.Rows[0];
+            var column = (IColumn<Node>)target.Columns[0];
+            var children = data[0].Children!;
+            var before = children.CollectionChangedSubscriberCount();
+
+            var cells = Enumerable.Range(0, 3).Select(_ => column.CreateCell(row)).ToList();
+            await Assert.That(children.CollectionChangedSubscriberCount()).IsEqualTo(before + 3);
+
+            foreach (var cell in cells)
+                ((IDisposable)cell).Dispose();
+
+            await Assert.That(children.CollectionChangedSubscriberCount()).IsEqualTo(before);
         }
 
         [Test]
@@ -504,6 +527,41 @@ public class HierarchicalTreeDataGridSourceTests
             target.Expand(0);
             await Assert.That(target.Rows.Count).IsEqualTo(8);
         }
+    }
+
+    // The grid recycles its realized rows when the source raises Sorted, so every path which
+    // reorders the rows has to raise it exactly once.
+    [Test]
+    public async Task Sort_Raises_Sorted()
+    {
+        var target = CreateTarget(CreateData(), sorted: false);
+        var raised = 0;
+
+        target.Sorted += () => ++raised;
+        target.Sort((x, y) => y!.Id - x!.Id);
+
+        await Assert.That(raised).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task SortBy_And_ClearSort_Each_Raise_Sorted_Once()
+    {
+        var target = CreateTarget(CreateData(), sorted: false);
+        var column = target.Columns[0];
+        var raised = 0;
+
+        target.Sorted += () => ++raised;
+
+        await Assert.That(target.SortBy(column, ListSortDirection.Descending)).IsTrue();
+        await Assert.That(raised).IsEqualTo(1);
+        await Assert.That(column.SortDirection).IsEqualTo(ListSortDirection.Descending);
+        await Assert.That(target.IsSorted).IsTrue();
+
+        target.ClearSort(column);
+
+        await Assert.That(raised).IsEqualTo(2);
+        await Assert.That(column.SortDirection).IsNull();
+        await Assert.That(target.IsSorted).IsFalse();
     }
 
     [Test]

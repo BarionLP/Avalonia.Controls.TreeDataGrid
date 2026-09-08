@@ -16,8 +16,8 @@ internal class AvaloniaListDebug<T> : AvaloniaList<T>, INotifyCollectionChanged
         }
         remove
         {
-            base.CollectionChanged += value;
-            _collectionChanged -= value;   
+            base.CollectionChanged -= value;
+            _collectionChanged -= value;
         }
     }
 

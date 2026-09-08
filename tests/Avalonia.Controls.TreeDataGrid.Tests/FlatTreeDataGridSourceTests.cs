@@ -1,7 +1,9 @@
 ﻿using System.Collections.Specialized;
+using System.ComponentModel;
 using Avalonia.Collections;
 using Avalonia.Controls.Models.TreeDataGrid;
 using Avalonia.Controls.Selection;
+using TUnit.Assertions.Enums;
 
 namespace Avalonia.Controls.TreeDataGridTests;
 
@@ -168,6 +170,27 @@ public class FlatTreeDataGridSourceTests
         await Assert.That(raised).IsEqualTo(1);
     }
 
+    [Test]
+    public async Task SortBy_And_ClearSort_Each_Raise_Sorted_Once()
+    {
+        var target = CreateTarget(CreateData());
+        var column = target.Columns[0];
+        var raised = 0;
+
+        target.Sorted += () => ++raised;
+
+        await Assert.That(target.SortBy(column, ListSortDirection.Descending)).IsTrue();
+        await Assert.That(raised).IsEqualTo(1);
+        await Assert.That(column.SortDirection).IsEqualTo(ListSortDirection.Descending);
+        await Assert.That(target.IsSorted).IsTrue();
+
+        target.ClearSort(column);
+
+        await Assert.That(raised).IsEqualTo(2);
+        await Assert.That(column.SortDirection).IsNull();
+        await Assert.That(target.IsSorted).IsFalse();
+    }
+
     public class Filtered
     {
         [Test]
@@ -270,6 +293,152 @@ public class FlatTreeDataGridSourceTests
 
             await Assert.That(raised).IsEqualTo(1);
             await AssertRows(target.Rows, data);
+        }
+    }
+
+    /// <summary>
+    /// Covers the row indexes and change notifications produced when a source is sorted and
+    /// filtered at the same time, where a change to a range of models affects scattered rows.
+    /// </summary>
+    public class SortedAndFiltered
+    {
+        [Test]
+        public async Task Rows_Are_Sorted_And_Filtered()
+        {
+            var (target, _) = CreateTarget();
+
+            await Assert.That(RowIds(target)).IsEquivalentTo(new[] { 50, 40, 20, 10, 0 }, CollectionOrdering.Matching);
+        }
+
+        [Test]
+        public async Task ModelIndexToRowIndex_Maps_Visible_Rows_And_Returns_Minus_One_Otherwise()
+        {
+            var (target, _) = CreateTarget();
+
+            // Model 5 (id 50) is the first row, model 0 (id 0) the last.
+            await Assert.That(target.Rows.ModelIndexToRowIndex(new IndexPath(5))).IsEqualTo(0);
+            await Assert.That(target.Rows.ModelIndexToRowIndex(new IndexPath(0))).IsEqualTo(4);
+
+            // Hidden by the filter.
+            await Assert.That(target.Rows.ModelIndexToRowIndex(new IndexPath(3))).IsEqualTo(-1);
+
+            // Not in the source at all.
+            await Assert.That(target.Rows.ModelIndexToRowIndex(new IndexPath(99))).IsEqualTo(-1);
+            await Assert.That(target.Rows.ModelIndexToRowIndex(default)).IsEqualTo(-1);
+        }
+
+        [Test]
+        public async Task RowIndexToModelIndex_Round_Trips()
+        {
+            var (target, _) = CreateTarget();
+
+            for (var i = 0; i < target.Rows.Count; ++i)
+            {
+                var modelIndex = target.Rows.RowIndexToModelIndex(i);
+                await Assert.That(target.Rows.ModelIndexToRowIndex(modelIndex)).IsEqualTo(i);
+            }
+        }
+
+        [Test]
+        public async Task Adding_Visible_Model_Raises_Add_At_Its_Sorted_Row()
+        {
+            var (target, data) = CreateTarget();
+            var changes = RecordChanges(target.Rows);
+
+            // Appended to the source, but sorts between 40 and 20, which are rows 1 and 2.
+            data.Add(new Row { Id = 25, Caption = "Row 25" });
+
+            await Assert.That(changes).IsEquivalentTo(
+                new[] { new RowChange(NotifyCollectionChangedAction.Add, 2, 25) },
+                CollectionOrdering.Matching);
+            await Assert.That(RowIds(target)).IsEquivalentTo(new[] { 50, 40, 25, 20, 10, 0 }, CollectionOrdering.Matching);
+        }
+
+        [Test]
+        public async Task Adding_Filtered_Out_Model_Raises_Nothing()
+        {
+            var (target, data) = CreateTarget();
+            var changes = RecordChanges(target.Rows);
+
+            data.Insert(0, new Row { Id = 30, Caption = "Hidden" });
+
+            await Assert.That(changes).IsEmpty();
+            await Assert.That(RowIds(target)).IsEquivalentTo(new[] { 50, 40, 20, 10, 0 }, CollectionOrdering.Matching);
+        }
+
+        [Test]
+        public async Task Removing_Visible_Model_Raises_Remove_At_Its_Sorted_Row()
+        {
+            var (target, data) = CreateTarget();
+            var changes = RecordChanges(target.Rows);
+
+            data.Remove(data.Single(x => x.Id == 40));
+
+            await Assert.That(changes).IsEquivalentTo(
+                new[] { new RowChange(NotifyCollectionChangedAction.Remove, 1, 40) },
+                CollectionOrdering.Matching);
+            await Assert.That(RowIds(target)).IsEquivalentTo(new[] { 50, 20, 10, 0 }, CollectionOrdering.Matching);
+        }
+
+        [Test]
+        public async Task Removing_Filtered_Out_Model_Raises_Nothing_But_Remaps_Later_Rows()
+        {
+            var (target, data) = CreateTarget();
+            var changes = RecordChanges(target.Rows);
+
+            // Removing model 3 (id 30) shifts models 4 and 5 (ids 40 and 50) down by one.
+            data.Remove(data.Single(x => x.Id == 30));
+
+            await Assert.That(changes).IsEmpty();
+            await Assert.That(RowIds(target)).IsEquivalentTo(new[] { 50, 40, 20, 10, 0 }, CollectionOrdering.Matching);
+            await Assert.That(target.Rows.ModelIndexToRowIndex(new IndexPath(4))).IsEqualTo(0);
+            await Assert.That(target.Rows.ModelIndexToRowIndex(new IndexPath(3))).IsEqualTo(1);
+        }
+
+        private static IReadOnlyList<int> RowIds(FlatTreeDataGridSource<Row> target)
+        {
+            return Enumerable.Range(0, target.Rows.Count)
+                .Select(i => ((IRow<Row>)target.Rows[i]).Model.Id)
+                .ToList();
+        }
+
+        /// <summary>
+        /// Records the changes raised by a rows collection. The rows carried by the event args
+        /// are only valid while the event is being raised, so the model is read there.
+        /// </summary>
+        private static List<RowChange> RecordChanges(IRows rows)
+        {
+            var result = new List<RowChange>();
+
+            rows.CollectionChanged += (_, e) =>
+            {
+                var items = e.Action == NotifyCollectionChangedAction.Remove ? e.OldItems : e.NewItems;
+                var index = e.Action == NotifyCollectionChangedAction.Remove ? e.OldStartingIndex : e.NewStartingIndex;
+                var id = items?.Count > 0 && items[0] is IRow<Row> row ? row.Model.Id : (int?)null;
+                result.Add(new RowChange(e.Action, index, id));
+            };
+
+            return result;
+        }
+
+        private record struct RowChange(NotifyCollectionChangedAction Action, int RowIndex, int? ModelId);
+
+        /// <summary>
+        /// Creates a source of models with ids 0, 10, 20, 30, 40 and 50, sorted by descending id
+        /// with the model of id 30 filtered out, so that rows are 50, 40, 20, 10, 0. The ids are
+        /// spaced so that a model can be added between two existing rows.
+        /// </summary>
+        private static (FlatTreeDataGridSource<Row> target, AvaloniaList<Row> data) CreateTarget()
+        {
+            AvaloniaList<Row> data = [.. Enumerable.Range(0, 6).Select(x => new Row { Id = x * 10, Caption = $"Row {x * 10}" })];
+            var target = FlatTreeDataGridSourceTests.CreateTarget(data);
+
+            target.SortBy(target.Columns[0], ListSortDirection.Descending);
+            target.Filter(x => x.Id != 30);
+
+            // Read the rows so that the map is built and changes are reported per row.
+            _ = target.Rows.Count;
+            return (target, data);
         }
     }
 

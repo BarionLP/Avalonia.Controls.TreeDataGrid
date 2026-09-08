@@ -3,6 +3,7 @@ using Avalonia.Collections;
 using Avalonia.Controls.Models.TreeDataGrid;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Selection;
+using Avalonia.Input;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -799,10 +800,115 @@ public class TreeDataGridTests_Flat
         }
     }
 
+    /// <summary>
+    /// Covers the keyboard handling in <see cref="TreeDataGridRowSelectionModel{TModel}"/>, which
+    /// works in row indexes and so has to cope with there being no selected row to start from.
+    /// </summary>
+    public class Keyboard
+    {
+        [Test]
+        [Arguments(15)]
+        [Arguments(25)]
+        [Arguments(100)]
+        [Arguments(400)]
+        public async Task Paging_With_No_Selection_Selects_A_Row_In_Range(double height)
+        {
+            // A page is measured from the realized rows, and with nothing selected there is no
+            // row to page from: whatever the viewport size, the result has to be a real row.
+            foreach (var key in new[] { Key.PageDown, Key.PageUp })
+            {
+                var (target, items) = CreateTarget(clientSize: new Size(100, height));
+                target.Source!.SortBy(target.Source.Columns[0], ListSortDirection.Descending);
+                Layout(target);
+
+                await Assert.That(target.RowSelection!.SelectedIndex).IsEqualTo(default(IndexPath));
+
+                PressKey(target, key);
+
+                var selected = target.RowSelection.SelectedIndex;
+                await Assert.That(selected.Count).IsEqualTo(1);
+                await Assert.That(selected[0]).IsGreaterThanOrEqualTo(0);
+                await Assert.That(selected[0]).IsLessThan(items.Count);
+            }
+        }
+
+        [Test]
+        public async Task PageDown_With_No_Selection_Selects_The_Last_Visible_Row()
+        {
+            var (target, _) = CreateTarget();
+
+            // 100px tall window, 10px rows.
+            PressKey(target, Key.PageDown);
+
+            await Assert.That(target.RowSelection!.SelectedIndex).IsEqualTo(new IndexPath(9));
+        }
+
+        [Test]
+        [Arguments("i", 1)]
+        [Arguments("I", 1)]
+        public async Task Text_Input_Selects_A_Row_Regardless_Of_Case(string text, int expected)
+        {
+            var (target, _) = CreateTarget(models:
+            [
+                new Model { Id = 0, Title = "Alpha" },
+                new Model { Id = 1, Title = "item" },
+                new Model { Id = 2, Title = "Ignored" },
+            ]);
+
+            TypeText(target, text);
+
+            await Assert.That(target.RowSelection!.SelectedIndex).IsEqualTo(new IndexPath(expected));
+        }
+
+        [Test]
+        public async Task Repeating_A_Letter_Moves_To_The_Next_Match()
+        {
+            var (target, _) = CreateTarget(models:
+            [
+                new Model { Id = 0, Title = "Alpha" },
+                new Model { Id = 1, Title = "Apple" },
+                new Model { Id = 2, Title = "Banana" },
+            ]);
+
+            TypeText(target, "a");
+            await Assert.That(target.RowSelection!.SelectedIndex).IsEqualTo(new IndexPath(0));
+
+            TypeText(target, "a");
+            await Assert.That(target.RowSelection.SelectedIndex).IsEqualTo(new IndexPath(1));
+        }
+
+        [Test]
+        public async Task Empty_Text_Input_Is_Ignored()
+        {
+            // Some input methods deliver an empty string, which must not be treated as a key.
+            var (target, _) = CreateTarget();
+
+            TypeText(target, string.Empty);
+
+            await Assert.That(target.RowSelection!.SelectedIndex).IsEqualTo(default(IndexPath));
+        }
+
+        private static ITreeDataGridSelectionInteraction Interaction(TreeDataGrid target) =>
+            (ITreeDataGridSelectionInteraction)target.Source!.Selection!;
+
+        private static void PressKey(TreeDataGrid target, Key key)
+        {
+            Interaction(target).OnPreviewKeyDown(target, new KeyEventArgs { Key = key });
+        }
+
+        private static void TypeText(TreeDataGrid target, string text)
+        {
+            var column = (TextColumn<Model, string?>)target.Source!.Columns[1];
+            column.Options.IsTextSearchEnabled = true;
+            Interaction(target).OnTextInput(target, new TextInputEventArgs { Text = text });
+        }
+    }
+
     private static (TreeDataGrid, AvaloniaList<Model>) CreateTarget(IEnumerable<Model>? models = null,
         IEnumerable<IColumn<Model>>? columns = null,
         int itemCount = 100,
-        bool runLayout = true)
+        bool runLayout = true,
+        Size? clientSize = null)
     {
         AvaloniaList<Model>? items = null;
         if (models == null)
@@ -840,7 +946,7 @@ public class TreeDataGridTests_Flat
             Source = source,
         };
 
-        var root = new TestWindow(target)
+        var root = new TestWindow(target, clientSize)
         {
             Styles =
             {
