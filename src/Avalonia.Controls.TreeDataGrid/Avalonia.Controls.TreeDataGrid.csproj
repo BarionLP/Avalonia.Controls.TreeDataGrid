@@ -3,17 +3,9 @@
     <RootNamespace>Avalonia.Controls</RootNamespace>
   </PropertyGroup>
 
-  <!--
-    Trimming and native AOT. IsTrimmable/IsAotCompatible mark the assembly as safe for consumers
-    and turn the analyzers on; they are listed explicitly here so it's clear which checks apply.
-    TrimmerSingleWarn=false reports each unsafe call site rather than one warning per assembly.
-  -->
   <PropertyGroup>
-    <IsTrimmable>true</IsTrimmable>
-    <IsAotCompatible>true</IsAotCompatible>
-    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
-    <EnableAotAnalyzer>true</EnableAotAnalyzer>
-    <EnableSingleFileAnalyzer>true</EnableSingleFileAnalyzer>
+    <IsAotCompatible>true</IsAotCompatible> <!-- implies IsTrimmable true -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
 

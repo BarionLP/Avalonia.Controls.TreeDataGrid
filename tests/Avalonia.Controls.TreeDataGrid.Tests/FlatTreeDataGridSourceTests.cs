@@ -229,7 +229,7 @@ public class FlatTreeDataGridSourceTests
 
             // Visible model indexes are [0, 2, 4, 6, 8].
             await Assert.That(target.Rows.ModelIndexToRowIndex(new IndexPath(4))).IsEqualTo(2);
-            await Assert.That(target.Rows.ModelIndexToRowIndex(new IndexPath(3)) < 0).IsTrue();
+            await Assert.That(target.Rows.ModelIndexToRowIndex(new IndexPath(3)) == -1).IsTrue();
         }
 
         [Test]

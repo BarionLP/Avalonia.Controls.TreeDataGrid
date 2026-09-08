@@ -151,18 +151,6 @@ public abstract class TreeDataGridCell : TemplatedControl, ITreeDataGridCell
             EndEdit();
     }
 
-    protected override Size MeasureOverride(Size availableSize)
-    {
-        var result = base.MeasureOverride(availableSize);
-
-        // HACKFIX for #83. Seems that cells are getting truncated at times due to DPI scaling.
-        // New text stack in Avalonia 11.0 should fix this but until then a hack to add a pixel
-        // to cell size seems to fix it.
-        result = result.Inflate(new Thickness(1, 0));
-
-        return result;
-    }
-
     protected override void OnDoubleTapped(TappedEventArgs e)
     {
         if (Model is not null &&
